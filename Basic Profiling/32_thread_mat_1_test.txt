@@ -1,0 +1,12 @@
+./gbla -t 32 -v 1 mat1
+---------------------------------------------------------------------
+Loading matrix ...                        0.003 sec (191.945 MB/sec)
+Splicing of input matrix ...              0.010 sec
+Storing A in C ...                        0.004 sec
+Transforming C ...                        0.002 sec
+Reducing C to zero ...                    0.009 sec
+Reducing D ...                            0.002 sec (rank D: 69)
+Reconstructing M ...                      0.001 sec (rank M: 863)
+-------------------------------------------------------------------
+Reduction completed ...                   0.030 sec
+-------------------------------------------------------------------

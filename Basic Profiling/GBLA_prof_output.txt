@@ -1,0 +1,289 @@
+Flat profile:
+
+Each sample counts as 0.01 seconds.
+  %   cumulative   self              self     total           
+ time   seconds   seconds    calls  Ts/call  Ts/call  name    
+ 66.67      0.02     0.02                             elim_fl_C_dense_sparse_blocks_task
+ 33.33      0.03     0.01                             compute_density
+  0.00      0.03     0.00     4171     0.00     0.00  update_wide_rows_four
+  0.00      0.03     0.00     2029     0.00     0.00  reduce_dense_row_three
+  0.00      0.03     0.00      404     0.00     0.00  update_wide_rows
+  0.00      0.03     0.00      397     0.00     0.00  update_wide_row
+  0.00      0.03     0.00      381     0.00     0.00  update_wide_rows_three
+  0.00      0.03     0.00      259     0.00     0.00  reduce_dense_row
+  0.00      0.03     0.00      133     0.00     0.00  reduce_dense_row_general
+  0.00      0.03     0.00      131     0.00     0.00  reduce_dense_row_pre_elim
+  0.00      0.03     0.00       61     0.00     0.00  copy_sparse_to_wide_row
+  0.00      0.03     0.00       55     0.00     0.00  copy_wide_to_sparse_row
+  0.00      0.03     0.00       13     0.00     0.00  reduce_dense_row_from
+  0.00      0.03     0.00       13     0.00     0.00  reduce_dense_row_twice_from
+  0.00      0.03     0.00        6     0.00     0.00  walltime
+  0.00      0.03     0.00        4     0.00     0.00  save_pivot
+  0.00      0.03     0.00        1     0.00     0.00  construct_fl_map
+  0.00      0.03     0.00        1     0.00     0.00  elim_fl_C_dense_sparse_block
+  0.00      0.03     0.00        1     0.00     0.00  elim_fl_C_sparse_dense_keep_A
+  0.00      0.03     0.00        1     0.00     0.00  elim_fl_dense_D
+  0.00      0.03     0.00        1     0.00     0.00  init_fl_map
+  0.00      0.03     0.00        1     0.00     0.00  ouvrir
+  0.00      0.03     0.00        1     0.00     0.00  pre_elim_sequential
+  0.00      0.03     0.00        1     0.00     0.00  reconstruct_matrix_no_multiline_keep_A
+  0.00      0.03     0.00        1     0.00     0.00  splice_fl_matrix_sparse_dense_keep_A
+
+ %         the percentage of the total running time of the
+time       program used by this function.
+
+cumulative a running sum of the number of seconds accounted
+ seconds   for by this function and those listed above it.
+
+ self      the number of seconds accounted for by this
+seconds    function alone.  This is the major sort for this
+           listing.
+
+calls      the number of times this function was invoked, if
+           this function is profiled, else blank.
+
+ self      the average number of milliseconds spent in this
+ms/call    function per call, if this function is profiled,
+	   else blank.
+
+ total     the average number of milliseconds spent in this
+ms/call    function and its descendents per call, if this
+	   function is profiled, else blank.
+
+name       the name of the function.  This is the minor sort
+           for this listing. The index shows the location of
+	   the function in the gprof listing. If the index is
+	   in parenthesis it shows where it would appear in
+	   the gprof listing if it were to be printed.
+
+Copyright (C) 2012-2018 Free Software Foundation, Inc.
+
+Copying and distribution of this file, with or without modification,
+are permitted in any medium without royalty provided the copyright
+notice and this notice are preserved.
+
+		     Call graph (explanation follows)
+
+
+granularity: each sample hit covers 2 byte(s) for 33.33% of 0.03 seconds
+
+index % time    self  children    called     name
+                                   4             elim_fl_C_dense_sparse_blocks_task [1]
+[1]     66.7    0.02    0.00       0+4       elim_fl_C_dense_sparse_blocks_task [1]
+                                   4             elim_fl_C_dense_sparse_blocks_task [1]
+-----------------------------------------------
+                                   3             compute_density [2]
+[2]     33.3    0.01    0.00       0+3       compute_density [2]
+                                   3             compute_density [2]
+-----------------------------------------------
+                0.00    0.00    4171/4171        elim_fl_C_sparse_dense_keep_A_tasks_four [79]
+[3]      0.0    0.00    0.00    4171         update_wide_rows_four [3]
+-----------------------------------------------
+                0.00    0.00     686/2029        reduce_dense_row_general [9]
+                0.00    0.00    1343/2029        reduce_dense_row_pre_elim [10]
+[4]      0.0    0.00    0.00    2029         reduce_dense_row_three [4]
+-----------------------------------------------
+                0.00    0.00     404/404         elim_fl_C_sparse_dense_keep_A_tasks_four [79]
+[5]      0.0    0.00    0.00     404         update_wide_rows [5]
+-----------------------------------------------
+                0.00    0.00     397/397         elim_fl_C_sparse_dense_keep_A_tasks_four [79]
+[6]      0.0    0.00    0.00     397         update_wide_row [6]
+-----------------------------------------------
+                0.00    0.00     381/381         elim_fl_C_sparse_dense_keep_A_tasks_four [79]
+[7]      0.0    0.00    0.00     381         update_wide_rows_three [7]
+-----------------------------------------------
+                0.00    0.00      27/259         reduce_dense_row_pre_elim [10]
+                0.00    0.00      67/259         reduce_dense_row_general [9]
+                0.00    0.00      81/259         elim_fl_dense_D_tasks [89]
+                0.00    0.00      84/259         pre_elim_sequential [23]
+[8]      0.0    0.00    0.00     259         reduce_dense_row [8]
+-----------------------------------------------
+                0.00    0.00      63/133         pre_elim_sequential [23]
+                0.00    0.00      70/133         elim_fl_dense_D_tasks [89]
+[9]      0.0    0.00    0.00     133         reduce_dense_row_general [9]
+                0.00    0.00     686/2029        reduce_dense_row_three [4]
+                0.00    0.00      67/259         reduce_dense_row [8]
+-----------------------------------------------
+                0.00    0.00      63/131         pre_elim_sequential [23]
+                0.00    0.00      68/131         elim_fl_dense_D_tasks [89]
+[10]     0.0    0.00    0.00     131         reduce_dense_row_pre_elim [10]
+                0.00    0.00    1343/2029        reduce_dense_row_three [4]
+                0.00    0.00      27/259         reduce_dense_row [8]
+                0.00    0.00      13/13          reduce_dense_row_twice_from [14]
+                0.00    0.00      13/13          reduce_dense_row_from [13]
+-----------------------------------------------
+                0.00    0.00      61/61          elim_fl_C_sparse_dense_keep_A_tasks_four [79]
+[11]     0.0    0.00    0.00      61         copy_sparse_to_wide_row [11]
+-----------------------------------------------
+                0.00    0.00      55/55          elim_fl_C_sparse_dense_keep_A_tasks_four [79]
+[12]     0.0    0.00    0.00      55         copy_wide_to_sparse_row [12]
+-----------------------------------------------
+                0.00    0.00      13/13          reduce_dense_row_pre_elim [10]
+[13]     0.0    0.00    0.00      13         reduce_dense_row_from [13]
+-----------------------------------------------
+                0.00    0.00      13/13          reduce_dense_row_pre_elim [10]
+[14]     0.0    0.00    0.00      13         reduce_dense_row_twice_from [14]
+-----------------------------------------------
+                0.00    0.00       6/6           fl_block_sparse_dense_keep_A [95]
+[15]     0.0    0.00    0.00       6         walltime [15]
+-----------------------------------------------
+                0.00    0.00       1/4           pre_elim_sequential [23]
+                0.00    0.00       3/4           elim_fl_dense_D_tasks [89]
+[16]     0.0    0.00    0.00       4         save_pivot [16]
+-----------------------------------------------
+                0.00    0.00       1/1           splice_fl_matrix_sparse_dense_keep_A [25]
+[17]     0.0    0.00    0.00       1         construct_fl_map [17]
+                0.00    0.00       1/1           init_fl_map [21]
+-----------------------------------------------
+                0.00    0.00       1/1           fl_block_sparse_dense_keep_A [95]
+[18]     0.0    0.00    0.00       1         elim_fl_C_dense_sparse_block [18]
+-----------------------------------------------
+                0.00    0.00       1/1           fl_block_sparse_dense_keep_A [95]
+[19]     0.0    0.00    0.00       1         elim_fl_C_sparse_dense_keep_A [19]
+-----------------------------------------------
+                0.00    0.00       1/1           fl_block_sparse_dense_keep_A [95]
+[20]     0.0    0.00    0.00       1         elim_fl_dense_D [20]
+                0.00    0.00       1/1           pre_elim_sequential [23]
+-----------------------------------------------
+                0.00    0.00       1/1           construct_fl_map [17]
+[21]     0.0    0.00    0.00       1         init_fl_map [21]
+-----------------------------------------------
+                0.00    0.00       1/1           load_jcf_matrix [110]
+[22]     0.0    0.00    0.00       1         ouvrir [22]
+-----------------------------------------------
+                0.00    0.00       1/1           elim_fl_dense_D [20]
+[23]     0.0    0.00    0.00       1         pre_elim_sequential [23]
+                0.00    0.00      84/259         reduce_dense_row [8]
+                0.00    0.00      63/133         reduce_dense_row_general [9]
+                0.00    0.00      63/131         reduce_dense_row_pre_elim [10]
+                0.00    0.00       1/4           save_pivot [16]
+-----------------------------------------------
+                0.00    0.00       1/1           fl_block_sparse_dense_keep_A [95]
+[24]     0.0    0.00    0.00       1         reconstruct_matrix_no_multiline_keep_A [24]
+-----------------------------------------------
+                0.00    0.00       1/1           fl_block_sparse_dense_keep_A [95]
+[25]     0.0    0.00    0.00       1         splice_fl_matrix_sparse_dense_keep_A [25]
+                0.00    0.00       1/1           construct_fl_map [17]
+-----------------------------------------------
+                                  27             elim_fl_C_sparse_dense_keep_A_tasks_four [79]
+[79]     0.0    0.00    0.00       0+27      elim_fl_C_sparse_dense_keep_A_tasks_four [79]
+                0.00    0.00    4171/4171        update_wide_rows_four [3]
+                0.00    0.00     404/404         update_wide_rows [5]
+                0.00    0.00     397/397         update_wide_row [6]
+                0.00    0.00     381/381         update_wide_rows_three [7]
+                0.00    0.00      61/61          copy_sparse_to_wide_row [11]
+                0.00    0.00      55/55          copy_wide_to_sparse_row [12]
+                                  27             elim_fl_C_sparse_dense_keep_A_tasks_four [79]
+-----------------------------------------------
+                                   1             elim_fl_C_sparse_dense_keep_A_tasks_single [80]
+[80]     0.0    0.00    0.00       0+1       elim_fl_C_sparse_dense_keep_A_tasks_single [80]
+                                   1             elim_fl_C_sparse_dense_keep_A_tasks_single [80]
+-----------------------------------------------
+                                  28             elim_fl_dense_D_tasks [89]
+[89]     0.0    0.00    0.00       0+28      elim_fl_dense_D_tasks [89]
+                0.00    0.00      81/259         reduce_dense_row [8]
+                0.00    0.00      70/133         reduce_dense_row_general [9]
+                0.00    0.00      68/131         reduce_dense_row_pre_elim [10]
+                0.00    0.00       3/4           save_pivot [16]
+                                  28             elim_fl_dense_D_tasks [89]
+-----------------------------------------------
+
+ This table describes the call tree of the program, and was sorted by
+ the total amount of time spent in each function and its children.
+
+ Each entry in this table consists of several lines.  The line with the
+ index number at the left hand margin lists the current function.
+ The lines above it list the functions that called this function,
+ and the lines below it list the functions this one called.
+ This line lists:
+     index	A unique number given to each element of the table.
+		Index numbers are sorted numerically.
+		The index number is printed next to every function name so
+		it is easier to look up where the function is in the table.
+
+     % time	This is the percentage of the `total' time that was spent
+		in this function and its children.  Note that due to
+		different viewpoints, functions excluded by options, etc,
+		these numbers will NOT add up to 100%.
+
+     self	This is the total amount of time spent in this function.
+
+     children	This is the total amount of time propagated into this
+		function by its children.
+
+     called	This is the number of times the function was called.
+		If the function called itself recursively, the number
+		only includes non-recursive calls, and is followed by
+		a `+' and the number of recursive calls.
+
+     name	The name of the current function.  The index number is
+		printed after it.  If the function is a member of a
+		cycle, the cycle number is printed between the
+		function's name and the index number.
+
+
+ For the function's parents, the fields have the following meanings:
+
+     self	This is the amount of time that was propagated directly
+		from the function into this parent.
+
+     children	This is the amount of time that was propagated from
+		the function's children into this parent.
+
+     called	This is the number of times this parent called the
+		function `/' the total number of times the function
+		was called.  Recursive calls to the function are not
+		included in the number after the `/'.
+
+     name	This is the name of the parent.  The parent's index
+		number is printed after it.  If the parent is a
+		member of a cycle, the cycle number is printed between
+		the name and the index number.
+
+ If the parents of the function cannot be determined, the word
+ `<spontaneous>' is printed in the `name' field, and all the other
+ fields are blank.
+
+ For the function's children, the fields have the following meanings:
+
+     self	This is the amount of time that was propagated directly
+		from the child into the function.
+
+     children	This is the amount of time that was propagated from the
+		child's children to the function.
+
+     called	This is the number of times the function called
+		this child `/' the total number of times the child
+		was called.  Recursive calls by the child are not
+		listed in the number after the `/'.
+
+     name	This is the name of the child.  The child's index
+		number is printed after it.  If the child is a
+		member of a cycle, the cycle number is printed
+		between the name and the index number.
+
+ If there are any cycles (circles) in the call graph, there is an
+ entry for the cycle-as-a-whole.  This entry shows who called the
+ cycle (as parents) and the members of the cycle (as children.)
+ The `+' recursive calls entry shows the number of function calls that
+ were internal to the cycle, and the calls entry for each member shows,
+ for that member, how many times it was called from other members of
+ the cycle.
+
+Copyright (C) 2012-2018 Free Software Foundation, Inc.
+
+Copying and distribution of this file, with or without modification,
+are permitted in any medium without royalty provided the copyright
+notice and this notice are preserved.
+
+Index by function name
+
+   [2] compute_density        [22] ouvrir                 [16] save_pivot (elimination.h)
+  [17] construct_fl_map       [23] pre_elim_sequential    [25] splice_fl_matrix_sparse_dense_keep_A
+  [11] copy_sparse_to_wide_row (elimination.h) [24] reconstruct_matrix_no_multiline_keep_A [6] update_wide_row (elimination.h)
+  [12] copy_wide_to_sparse_row (elimination.h) [8] reduce_dense_row (elimination.h) [5] update_wide_rows (elimination.h)
+  [18] elim_fl_C_dense_sparse_block [13] reduce_dense_row_from (elimination.h) [3] update_wide_rows_four (elimination.h)
+   [1] elim_fl_C_dense_sparse_blocks_task [9] reduce_dense_row_general (elimination.h) [7] update_wide_rows_three (elimination.h)
+  [19] elim_fl_C_sparse_dense_keep_A [10] reduce_dense_row_pre_elim (elimination.h) [15] walltime
+  [20] elim_fl_dense_D         [4] reduce_dense_row_three (elimination.h)
+  [21] init_fl_map            [14] reduce_dense_row_twice_from (elimination.h)
