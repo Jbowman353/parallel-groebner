@@ -11,6 +11,5 @@ kat4 f5b= 0.020598411560058594
 Example ~python3 test_groebnertools.py
 Easy or Hard?  
 >>>hard
-Example ~python3 test_groebnertools.py
 czichowski buchberger= 2.952019453048706
 czichowski f5b= 0.0827178955078125
