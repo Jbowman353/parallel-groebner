@@ -25,12 +25,13 @@ def groebner(seq, ring, method=None):
     _groebner_methods = {
         'buchberger': _buchberger,
         'f5b': _f5b,
+        'f5b_gpu': _f5b_gpu
     }
 
     try:
         _groebner = _groebner_methods[method]
     except KeyError:
-        raise ValueError("'%s' is not a valid Groebner bases algorithm (valid are 'buchberger' and 'f5b')" % method)
+        raise ValueError("'%s' is not a valid Groebner bases algorithm (valid are 'buchberger', 'f5b', and 'f5b_gpu')" % method)
 
     domain, orig = ring.domain, None
 
@@ -862,3 +863,102 @@ def groebner_gcd(f, g):
         return gcd*h
     else:
         return h.monic()
+
+##########################################################
+#    GPU-based f5b
+#    *As of now, I've just copied the contents of _f5b above, and possibly made minor changes, do not assume this works
+##########################################################
+
+def _f5b_gpu(F, ring):
+    order = ring.order
+
+    # reduce polynomials (like in Mario Pernici's implementation) (Becker, Weispfenning, p. 203)
+    B = F
+    while True:
+        F = B
+        B = []
+
+        for i in range(len(F)):
+            p = F[i]
+            r = p.rem(F[:i])
+
+            if r:
+                B.append(r)
+
+        if F == B:
+            break
+
+    # basis
+    B = [lbp(sig(ring.zero_monom, i + 1), F[i], i + 1) for i in range(len(F))]
+    B.sort(key=lambda f: order(Polyn(f).LM), reverse=True)
+
+    # critical pairs
+    CP = [critical_pair(B[i], B[j], ring) for i in range(len(B)) for j in range(i + 1, len(B))]
+    CP.sort(key=lambda cp: cp_key(cp, ring), reverse=True)
+
+    k = len(B)
+
+    reductions_to_zero = 0
+
+    while len(CP):
+        cp = CP.pop()
+
+        # discard redundant critical pairs:
+        if is_rewritable_or_comparable(cp[0], Num(cp[2]), B):
+            continue
+        if is_rewritable_or_comparable(cp[3], Num(cp[5]), B):
+            continue
+
+        s = s_poly(cp)
+
+        p = f5_reduce(s, B)
+
+        p = lbp(Sign(p), Polyn(p).monic(), k + 1)
+
+        if Polyn(p):
+            # remove old critical pairs, that become redundant when adding p:
+            indices = []
+            for i, cp in enumerate(CP):
+                if is_rewritable_or_comparable(cp[0], Num(cp[2]), [p]):
+                    indices.append(i)
+                elif is_rewritable_or_comparable(cp[3], Num(cp[5]), [p]):
+                    indices.append(i)
+
+            for i in reversed(indices):
+                del CP[i]
+
+            # only add new critical pairs that are not made redundant by p:
+            for g in B:
+                if Polyn(g):
+                    cp = critical_pair(p, g, ring)
+                    if is_rewritable_or_comparable(cp[0], Num(cp[2]), [p]):
+                        continue
+                    elif is_rewritable_or_comparable(cp[3], Num(cp[5]), [p]):
+                        continue
+
+                    CP.append(cp)
+
+            # sort (other sorting methods/selection strategies were not as successful)
+            CP.sort(key=lambda cp: cp_key(cp, ring), reverse=True)
+
+            # insert p into B:
+            m = Polyn(p).LM
+            if order(m) <= order(Polyn(B[-1]).LM):
+                B.append(p)
+            else:
+                for i, q in enumerate(B):
+                    if order(m) > order(Polyn(q).LM):
+                        B.insert(i, p)
+                        break
+
+            k += 1
+
+            #print(len(B), len(CP), "%d critical pairs removed" % len(indices))
+        else:
+            reductions_to_zero += 1
+
+    # reduce Groebner basis:
+    H = [Polyn(g).monic() for g in B]
+    H = red_groebner(H, ring)
+
+    return sorted(H, key=lambda f: order(f.LM), reverse=True)
