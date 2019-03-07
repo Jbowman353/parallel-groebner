@@ -629,6 +629,8 @@ def _f5b(F, ring):
 
     # critical pairs
     CP = [critical_pair(B[i], B[j], ring) for i in range(len(B)) for j in range(i + 1, len(B))]
+    print(Polyn(B[0]).LT)
+    print(Polyn(B[0]).leading_term())
     CP.sort(key=lambda cp: cp_key(cp, ring), reverse=True)
 
     k = len(B)
@@ -894,6 +896,7 @@ def _f5b_gpu(F, ring):
 
     # critical pairs
     CP = [critical_pair(B[i], B[j], ring) for i in range(len(B)) for j in range(i + 1, len(B))]
+    CP = cuda_cp(B, ring)
     CP.sort(key=lambda cp: cp_key(cp, ring), reverse=True)
 
     k = len(B)
@@ -962,3 +965,34 @@ def _f5b_gpu(F, ring):
     H = red_groebner(H, ring)
 
     return sorted(H, key=lambda f: order(f.LM), reverse=True)
+
+def cuda_cp(B, ring):
+    # CP = [critical_pair(B[i], B[j], ring) for i in range(len(B)) for j in range(i + 1, len(B))]
+
+    # LT format -> ((0, 1, 0, 0), 6):
+    #   the first tuple represents the exponents for each possible term (x0, x1, x2, x3) Above, the tuple is x1 ** 2
+    #   the last number represents the coefficient, so the whole tuple together represents 6x ** 2
+    #
+    # The Polyn(f).leading_term() below is similar, but in the format ' 6*x1**2 '
+    
+    lt_arr = [Polyn(f).LT for f in B]
+    domain = ring.domain
+
+    # ltf = Polyn(f).LT
+    # ltg = Polyn(g).LT
+    # lt = (monomial_lcm(ltf[0], ltg[0]), domain.one)
+
+    # um = term_div(lt, ltf, domain)
+    # vm = term_div(lt, ltg, domain)
+
+    # # The full information is not needed (now), so only the product
+    # # with the leading term is considered:
+    # fr = lbp_mul_term(lbp(Sign(f), Polyn(f).leading_term(), Num(f)), um)
+    # gr = lbp_mul_term(lbp(Sign(g), Polyn(g).leading_term(), Num(g)), vm)
+
+    # # return in proper order, such that the S-polynomial is just
+    # # u_first * f_first - u_second * f_second:
+    # if lbp_cmp(fr, gr) == -1:
+    #     return (Sign(gr), vm, g, Sign(fr), um, f)
+    # else:
+    #     return (Sign(fr), um, f, Sign(gr), vm, g)
