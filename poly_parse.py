@@ -8,7 +8,7 @@ def parse_polynomial(poly_string):
     """
     Parses a polynomial string.
     Takes a string formatted for example as "3x1^2x2^3+4x3^4" etc.
-    Takes a compiled regex pattern. The included pattern is for the above representation.
+    Uses a compiled regex pattern. The included pattern is for the above representation.
     Returns a list of dictionaries representing one polynomial in the system.
     """
 
