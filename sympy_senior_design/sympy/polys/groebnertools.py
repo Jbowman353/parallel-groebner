@@ -897,7 +897,9 @@ def _f5b_gpu(F, ring):
 
     # critical pairs
     CP = [critical_pair(B[i], B[j], ring) for i in range(len(B)) for j in range(i + 1, len(B))]
-    cuda_cp(B, ring)
+    CP2 = cuda_cp(B, ring)
+    if CP != CP2:
+        print("CP NOT EQUAL TO CUDA CP")
     CP.sort(key=lambda cp: cp_key(cp, ring), reverse=True)
 
     k = len(B)
