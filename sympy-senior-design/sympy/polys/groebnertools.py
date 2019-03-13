@@ -9,6 +9,9 @@ from sympy.polys.orderings import lex
 from sympy.polys.polyerrors import DomainError
 from sympy.polys.polyconfig import query
 
+# SENIOR DESIGN IMPORTS
+import numpy, math
+
 def groebner(seq, ring, method=None):
     """
     Computes Groebner basis for a set of polynomials in `K[X]`.
@@ -629,8 +632,6 @@ def _f5b(F, ring):
 
     # critical pairs
     CP = [critical_pair(B[i], B[j], ring) for i in range(len(B)) for j in range(i + 1, len(B))]
-    print(Polyn(B[0]).LT)
-    print(Polyn(B[0]).leading_term())
     CP.sort(key=lambda cp: cp_key(cp, ring), reverse=True)
 
     k = len(B)
@@ -896,7 +897,7 @@ def _f5b_gpu(F, ring):
 
     # critical pairs
     CP = [critical_pair(B[i], B[j], ring) for i in range(len(B)) for j in range(i + 1, len(B))]
-    CP = cuda_cp(B, ring)
+    cuda_cp(B, ring)
     CP.sort(key=lambda cp: cp_key(cp, ring), reverse=True)
 
     k = len(B)
@@ -967,6 +968,7 @@ def _f5b_gpu(F, ring):
     return sorted(H, key=lambda f: order(f.LM), reverse=True)
 
 def cuda_cp(B, ring):
+    # Original Form:
     # CP = [critical_pair(B[i], B[j], ring) for i in range(len(B)) for j in range(i + 1, len(B))]
 
     # LT format -> ((0, 1, 0, 0), 6):
@@ -975,15 +977,36 @@ def cuda_cp(B, ring):
     #
     # The Polyn(f).leading_term() below is similar, but in the format ' 6*x1**2 '
     
-    lt_arr = [Polyn(f).LT for f in B]
+    poly_lt_arr = numpy.array([Polyn(f).LT for f in B])
     domain = ring.domain
+
+    lt_res_arr = numpy.empty(math.factorial(poly_lt_arr.size))
 
     # ltf = Polyn(f).LT
     # ltg = Polyn(g).LT
-    # lt = (monomial_lcm(ltf[0], ltg[0]), domain.one)
+    # lt = (monomial_lcm(ltf[0], ltg[0]), domain.one) -> return tuple([ max(a, b) for a, b in zip(A, B) ])
 
     # um = term_div(lt, ltf, domain)
     # vm = term_div(lt, ltg, domain)
+    # ---------------------------------
+    #
+    #        a_lm, a_lc = a
+    #        b_lm, b_lc = b
+
+    #        monom = monomial_div(a_lm, b_lm)
+
+    #        if domain.is_Field:
+    #            if monom is not None:
+    #                return monom, domain.quo(a_lc, b_lc)
+    #            else:
+    #                return None
+    #        else:
+    #            if not (monom is None or a_lc % b_lc):
+    #                return monom, domain.quo(a_lc, b_lc)
+    #            else:
+    #                return None
+    #
+    # ----------------------------------
 
     # # The full information is not needed (now), so only the product
     # # with the leading term is considered:
