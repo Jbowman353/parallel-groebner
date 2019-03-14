@@ -46,9 +46,7 @@ def convertAllGBInputsToPython():
 
             vars_to_define = vars_to_define.union(system['data']['vars'])
 
-            xr_data = variables + ', QQ, lex'
-
-            to_write.append(r"{'file': '" + fname + r"', 'r_v': xring(" + xr_data + r"), 'system': " + psys + "}, ")
+            to_write.append(r"{'file': '" + fname + r"', 'vars': " + variables + r", 'system': '" + psys + "'}, ")
         
 
         new_input_file.write(import_string)
