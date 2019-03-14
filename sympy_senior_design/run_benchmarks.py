@@ -3,13 +3,12 @@ from sympy.polys.orderings import lex, grlex
 from sympy.polys.rings import ring, xring
 from sympy.polys.domains import ZZ, QQ
 import gb_input # take gb_input.py generated file from input_convert and make sure it's visible
-import csv, sys, os, datetime
+
+import time, csv, sys, os, datetime
 
 assert len(gb_input.inputs) != 0
 
-methods = ['f5b', 'f5b_gpu']
-
-output_headers = ['Input Name', 'SymPy F5B Time', 'F5B-Like GPU Time', 'Matching Results?']
+output_headers = ['Input Name', 'SymPy F5B Time', 'F5B-Like GPU Time', 'Matching Results?', 'Fastest Runtime']
 
 output_data = []
 
@@ -33,5 +32,20 @@ for input in gb_input.inputs:
 
     exec('I = ' + sys_string)
 
-    print(is_groebner(groebner(I, R), R))
+    start_f5b = time.time()
+    res_f5b = groebner(I, R, method="f5b")
+    end_f5b = time.time()
+    f5b_runtime = end_f5b - start_f5b
 
+    # start_f5b_gpu = time.time()
+    # res_f5b_gpu = groebner(I, R, method="f5b_gpu")
+    # end_f5b_gpu = time.time()
+    # f5b_gpu_runtime = end_f5b_gpu - start_f5b_gpu
+
+    output_data.append({'Input Name': fname, 'SymPy F5B Time': f5b_runtime, 'F5B-Like GPU Time': None, 'Matching Results?': False, 'Fastest Runtime':None})
+    
+
+with open(output_file_path, 'w') as csv_file:
+    out_writer = csv.DictWriter(csv_file, fieldnames = output_data[0].keys())
+    out_writer.writeheader()
+    out_writer.writerows(output_data)
