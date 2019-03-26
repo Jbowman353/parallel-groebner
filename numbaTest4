@@ -1,0 +1,47 @@
+import numba
+import math
+import numpy as np
+from timeit import default_timer as timer
+ 
+#root2pi = np.float32(math.sqrt(2*math.pi))
+
+#@numba.vectorize(['float32(float32,float32,float32)'], target='cuda')
+#def gaussian(x,x0,sigma):
+#	return math.exp(-((x-x0)/sigma)**2/2)/root2pi/sigma
+
+#parallelized spoly
+@numba.vectorize(['float32(float32,float32,float32)'], target='cuda')
+def spoly(p1, p2, ring):
+	#...
+	#return s
+
+#original spoly
+#def spoly(p1, p2, ring):
+#	leadingMonomial1 = p1.LM
+#	leadingMonomial2 = p2.LM
+#	leastCommonMultiple = ring.monomial_lcm(leadingMonomial1, leadingMonomial2)
+#	m1 = ring.monomial_div(leastCommonMultiple, leadingMonomial1)
+#	m2 = ring.monomial_div(leastCommonMultiple, leadingMonomial2)
+#	s1 = p1.mul_monom(m1)
+#	s2 = p2.mul_monom(m2)
+#	s = s1 - s2
+#	return s
+
+
+#vectorize test code for gaussian
+#start = timer()
+#x = np.linspace(-3,3,10000,dtype=np.float32)
+#g=gaussian(x,0,1)
+#time = timer() - start
+
+#print(g)
+#print('took %f seconds' %time)
+
+#start = timer()
+#x2d = x.reshape((100,100))
+#g2d=gaussian(x2d,0,1)
+#time = timer()-start
+
+#print(g2d)
+#print('took %f seconds' %time)
+
