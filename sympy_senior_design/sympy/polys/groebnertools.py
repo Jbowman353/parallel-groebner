@@ -11,6 +11,7 @@ from sympy.polys.polyconfig import query
 
 # SENIOR DESIGN IMPORTS
 import numpy, math
+import numba.cuda
 
 def groebner(seq, ring, method=None):
     """
@@ -978,12 +979,43 @@ def cuda_cp(B, ring):
     #   the last number represents the coefficient, so the whole tuple together represents 6x ** 2
     #
     # The Polyn(f).leading_term() below is similar, but in the format ' 6*x1**2 '
-    
+    @cuda.jit
+    def domain_field_helper(poly_lt_arr, cp_res_arr):
+        # For each pair (ltf, ltg) in poly_lt_arr:
+        #  lt = (monomial_lcm(ltf[0], ltg[0]), domain.one) , monomial_lcm -> return tuple([max(a,b) for a,b in zip(A,B)])
+        #  um = term_div(lt, ltf, domain)
+        #  vm = term_div(lt, ltg, domain)
+        #  fr = lbp_mul_term(lbp(Sign(f), Polyn(f).leading_term(), Num(f)), um)
+        #  gr = lbp_mul_term(lbp(Sign(g), Polyn(g).leading_term(), Num(g)), vm)
+        #  * Then, return in correct order
+
+        index_one = 0
+        index_two = 1
+
+        m = None
+
+        lt = []
+
+        for a,b in zip(poly_lt_arr[index_one[0], poly_lt_arr[index_two][0]):
+            lt.push(max(a,b))
+
+        lt = tuple(lt)
+
+        # TODO - um and vm calc
+
+    @cuda.jit
+    def domain_not_field_helper(poly_lt_arr, cp_res_arr):
+        pass
+
     poly_lt_arr = numpy.array([Polyn(f).LT for f in B])
     domain = ring.domain
 
-    lt_res_arr = numpy.empty(math.factorial(poly_lt_arr.size))
+    cp_res_arr = numpy.empty(math.factorial(poly_lt_arr.size))
 
+    if domain.is_Field:
+        domain_field_helper(poly_lt_arr, cp_res_arr)
+    else:
+        domain_not_field_helper(poly_lt_arr, cp_res_arr)
     # ltf = Polyn(f).LT
     # ltg = Polyn(g).LT
     # lt = (monomial_lcm(ltf[0], ltg[0]), domain.one) -> return tuple([ max(a, b) for a, b in zip(A, B) ])
