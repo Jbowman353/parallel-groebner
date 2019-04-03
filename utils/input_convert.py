@@ -8,9 +8,9 @@ def convert_gb_input(filepath, outfile=None):
     variables = []
     newInputs = []
     with open(filepath) as gb_file:
-        variables = str(gb_file.readline()).replace('\n', '').strip().split(',') #First line
-        variables = [x.strip() for x in variables]
-        gb_file.readline() #ignore second line
+        variables = str(gb_file.readline()).replace('\n', '').strip().split(',')  # First line
+        variables = [x.strip() for x in variables if x != '']
+        gb_file.readline()  # ignore second line
         newInputs = [str(line).replace('^', '**').replace('\n', '').replace(',','') for line in gb_file]
     output = {'vars': variables, 'system': newInputs}
 
@@ -22,9 +22,6 @@ def convert_gb_input(filepath, outfile=None):
                     out_file.write(p)
                 else:
                     out_file.write(p + ',\n')
-
-    else:
-        print(output)
 
     return output
 
@@ -45,6 +42,10 @@ def convertAllGBInputsToPython():
             variables = str(system['data']['vars'])
 
             vars_to_define = vars_to_define.union(system['data']['vars'])
+
+            for var in system['data']['vars']:
+                if 'x' not in var:
+                    print('\n\n\n' + str(system['file']) + '\n\n\n\n')
 
             to_write.append(r"{'file': '" + fname + r"', 'vars': " + variables + r", 'system': '" + psys + "'}, ")
         
