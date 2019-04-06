@@ -47,7 +47,7 @@ def convertAllGBInputsToPython():
                 if 'x' not in var:
                     print('\n\n\n' + str(system['file']) + '\n\n\n\n')
 
-            to_write.append(r"{'file': '" + fname + r"', 'vars': " + variables + r", 'system': '" + psys + "'}, ")
+            to_write.append(r"{'file': '" + fname + r"', 'vars': " + variables + r", 'system': '" + psys + "'}, \n")
         
 
         new_input_file.write(import_string)
