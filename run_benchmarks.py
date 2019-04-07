@@ -6,22 +6,34 @@ from sympy.polys.domains import ZZ, QQ
 import f5b_gpu
 import gb_input # take gb_input.py generated file from input_convert and make sure it's visible
 
-import time, csv, sys, os, datetime
+import time, csv, sys, os, datetime, re
+
+def get_degree(sys_string):
+    newstr = sys_string.replace(' ', '')
+    degs = []
+    for i in range(len(newstr)):
+        if newstr[i] == '*' and newstr[i+1] == '*':
+            j = i + 2
+            # TODO find the number part of the exponent, after **
+
+
+    return max(degs)
+
 
 assert len(gb_input.inputs) != 0
 
 print('*****\nRUNNING BENCHMARKS\n******')
 
-output_headers = ['Input Name', 'SymPy F5B Time', 'F5B-Like GPU Time', 'Matching Results?', 'Fastest Runtime']
-
 output_data = []
 
 output_file_path = 'bench_output_' + datetime.datetime.now().strftime("%H_%M__%b_%d") + '.csv'
 
-for input in gb_input.inputs:
-    fname = input['file']
-    var_str_list = input['vars']
-    sys_string = input['system']
+gb_input.inputs.sort(key=lambda x: len(x['vars']))
+
+for input_data in gb_input.inputs:
+    fname = input_data['file']
+    var_str_list = input_data['vars']
+    sys_string = input_data['system']
 
     r_v = xring(var_str_list, QQ, lex)
 
@@ -36,6 +48,10 @@ for input in gb_input.inputs:
 
     exec('I = ' + sys_string)
 
+    print(fname + ' Starting ...')
+    print(I)
+    print(R)
+
     start_f5b = time.time()
     res_f5b = groebner(I, R, method="f5b")
     end_f5b = time.time()
@@ -46,7 +62,11 @@ for input in gb_input.inputs:
     # end_f5b_gpu = time.time()
     # f5b_gpu_runtime = end_f5b_gpu - start_f5b_gpu
 
-    output_data.append({'Input Name': fname, 'SymPy F5B Time': f5b_runtime, 'F5B-Like GPU Time': None, 'Matching Results?': False, 'Fastest Runtime':None})
+    output_data.append({'Input Name': fname, 'SymPy F5B Time': f5b_runtime, 'F5B-Like GPU Time': None,
+                        'Matching Results?': False, 'Fastest Runtime': None, 'Number of Variables': len(var_list),
+                        'Max Degree': None})
+
+    print(fname + ' Completed!\n ----------')
     
 
 with open(output_file_path, 'w') as csv_file:
