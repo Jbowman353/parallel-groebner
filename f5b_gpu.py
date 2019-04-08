@@ -1,5 +1,6 @@
 from sympy.polys.groebnertools import *
-from numba import cuda
+# from numba import cuda
+import numba
 import numpy
 import math
 
@@ -106,7 +107,8 @@ def _f5b_gpu(F, ring):
 
     return sorted(H, key=lambda f: order(f.LM), reverse=True)
 
-@cuda.jit
+
+@numba.cuda.jit
 def domain_field_helper(poly_lt_arr, cp_res_arr):
     # For each pair (ltf, ltg) in poly_lt_arr:
     #  lt = (monomial_lcm(ltf[0], ltg[0]), domain.one) , monomial_lcm -> return tuple([max(a,b) for a,b in zip(A,B)])
@@ -116,7 +118,7 @@ def domain_field_helper(poly_lt_arr, cp_res_arr):
     #  gr = lbp_mul_term(lbp(Sign(g), Polyn(g).leading_term(), Num(g)), vm)
     #  * Then, return in correct order
 
-    index_one = 0   # both indices here need fixed, just placeholders for now
+    index_one = 0  # both indices here need fixed, just placeholders for now
     index_two = 1
 
     lt = []
@@ -129,9 +131,46 @@ def domain_field_helper(poly_lt_arr, cp_res_arr):
     # TODO - um and vm calc
 
 
-@cuda.jit
+@numba.cuda.jit
 def domain_not_field_helper(poly_lt_arr, cp_res_arr):
     pass
+
+
+# customized spoly with localized functions
+@numba.vectorize(['float32(float32, float32, float32)'], target='cuda')
+def cuda_spoly(p1, p2, ring):
+    """
+    Compute LCM(LM(p1), LM(p2))/LM(p1)*p1 - LCM(LM(p1), LM(p2))/LM(p2)*p2
+    This is the S-poly provided p1 and p2 are monic
+    """
+    LM1 = p1.LM
+    LM2 = p2.LM
+
+    # rewrite of LCM12 = custom
+    LCM12 = tuple([max(a, b) for a, b in zip(LM1, LM2)])
+
+    # rewrite of m1 = custom_monomial_div(LCM12, LM1)
+    C = tuple([a - b for a, b in zip(LCM12, LM1)])
+    if all(c >= 0 for c in C):
+        m1 = tuple(C)
+
+    # rewrite of m2 = custom_monomial_div(LCM12, LM2)
+    C = tuple([a - b for a, b in zip(LCM12, LM2)])
+    if all(c >= 0 for c in C):
+        m2 = tuple(C)
+
+    # rewrite of s1 = custom_mul_monom(p1,m1)
+    monomial_mul = p1.ring.monomial_mul
+    terms = [(tuple([a + b for a, b in zip(f_monom, m1)]), f_coeff) for f_monom, f_coeff in p1.items()]
+    s1 = p1.new(terms)
+
+    # rewrite of s2 = custom_mul_monom(p2,m2)
+    monomial_mul = p2.ring.monomial_mul
+    terms = [(tuple([a + b for a, b in zip(f_monom, m2)]), f_coeff) for f_monom, f_coeff in p2.items()]
+    s2 = p2.new(terms)
+
+    s = s1 - s2
+    return s
 
 
 def cuda_cp(B, ring):
