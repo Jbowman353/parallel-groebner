@@ -11,6 +11,16 @@ import math
 ##########################################################
 
 def _f5b_gpu(F, ring):
+    domain, orig = ring.domain, None
+
+    if not domain.is_Field or not domain.has_assoc_Field:
+        try:
+            orig, ring = ring, ring.clone(domain=domain.get_field())
+        except DomainError:
+            raise DomainError("can't compute a Groebner basis over %s" % domain)
+        else:
+            F = [ s.set_ring(ring) for s in F ]
+
     order = ring.order
 
     # reduce polynomials (like in Mario Pernici's implementation) (Becker, Weispfenning, p. 203)
@@ -107,37 +117,8 @@ def _f5b_gpu(F, ring):
 
     return sorted(H, key=lambda f: order(f.LM), reverse=True)
 
-
-@numba.cuda.jit
-def domain_field_helper(poly_lt_arr, cp_res_arr):
-    # For each pair (ltf, ltg) in poly_lt_arr:
-    #  lt = (monomial_lcm(ltf[0], ltg[0]), domain.one) , monomial_lcm -> return tuple([max(a,b) for a,b in zip(A,B)])
-    #  um = term_div(lt, ltf, domain)
-    #  vm = term_div(lt, ltg, domain)
-    #  fr = lbp_mul_term(lbp(Sign(f), Polyn(f).leading_term(), Num(f)), um)
-    #  gr = lbp_mul_term(lbp(Sign(g), Polyn(g).leading_term(), Num(g)), vm)
-    #  * Then, return in correct order
-
-    index_one = 0  # both indices here need fixed, just placeholders for now
-    index_two = 1
-
-    lt = []
-
-    for a, b in zip(poly_lt_arr[index_one][0], poly_lt_arr[index_two][0]):
-        lt.append(max(a, b))
-
-    lt = tuple(lt)
-
-    # TODO - um and vm calc
-
-
-@numba.cuda.jit
-def domain_not_field_helper(poly_lt_arr, cp_res_arr):
-    pass
-
-
 # customized spoly with localized functions
-@numba.vectorize(['float32(float32, float32, float32)'], target='cuda')
+# @numba.vectorize(['float32(float32, float32, float32)'], target='cuda')
 def cuda_spoly(p1, p2, ring):
     """
     Compute LCM(LM(p1), LM(p2))/LM(p1)*p1 - LCM(LM(p1), LM(p2))/LM(p2)*p2
@@ -182,16 +163,98 @@ def cuda_cp(B, ring):
     #   the last number represents the coefficient, so the whole tuple together represents 6x ** 2
     #
     # The Polyn(f).leading_term() below is similar, but in the format ' 6*x1**2 '
+    #
+    # Required Output format:
+    #
+    # [
+    #   (Sign(gr), vm, g, Sign(fr), um, f),
+    #   (Sign(gr), vm, g, Sign(fr), um, f)
+    # ]
 
-    poly_lt_arr = numpy.array([Polyn(f).LT for f in B])
-    domain = ring.domain
+    cp_res = []
+    for i in range(len(B)):
+        for j in range(i+1, len(B)):
+            f = B[i]
+            g = B[j]
 
-    cp_res_arr = numpy.empty(math.factorial(poly_lt_arr.size))
+            domain = ring.domain
 
-    if domain.is_Field:
-        domain_field_helper(poly_lt_arr, cp_res_arr)
-    else:
-        domain_not_field_helper(poly_lt_arr, cp_res_arr)
+            ltf = Polyn(f).LT
+            ltg = Polyn(g).LT
+            # lt = (monomial_lcm(ltf[0], ltg[0]), domain.one)
+            # lt = tuple([ max(a, b) for a, b in zip(ltf[0], ltg[0]) ])
+
+            lt = []
+
+            for a, b in zip(ltf[0], ltg[0]):
+                lt.append(max(a, b))
+            lt = (tuple(lt), domain.one)
+
+            ##################################################
+            # um = term_div(lt, ltf, domain)
+            lt_lm, lt_lc = lt
+            ltf_lm, ltf_lc = ltf
+
+            # monom = monomial_div(lt_lm, ltf_lm)
+            C = tuple([ a - b for a, b in zip(lt_lm, ltf_lm) ])
+
+            if all(c >= 0 for c in C):
+                monom = tuple(C)
+            else:
+                monom = None
+
+            if domain.is_Field:
+                if monom is not None:
+                    # um = monom, domain.quo(lt_lc, ltf_lc)
+                    um = monom, lt_lc / ltf_lc
+                else:
+                    um = None
+            else:
+                print('ERROR - Non-Field domains not supported in CUDA version')
+                exit()
+                # if not (monom is None or lt_lc % ltf_lc):
+                #     um = monom, domain.quo(lt_lc, ltf_lc)
+                # else:
+                #     um = None
+            ###################################################
+            ###################################################
+            # vm = term_div(lt, ltg, domain)
+            lt_lm, lt_lc = lt
+            ltg_lm, ltg_lc = ltg
+
+            # monom = monomial_div(lt_lm, ltf_lm)
+            C = tuple([ a - b for a, b in zip(lt_lm, ltg_lm) ])
+
+            if all(c >= 0 for c in C):
+                monom = tuple(C)
+            else:
+                monom = None
+
+            if domain.is_Field:
+                if monom is not None:
+                    vm = monom, domain.quo(lt_lc, ltg_lc)
+                else:
+                    vm = None
+            else:
+                print('ERROR - Non-field domains not supported in CUDA version')
+                # if not (monom is None or lt_lc % ltg_lc):
+                #     vm = monom, domain.quo(lt_lc, ltg_lc)
+                # else:
+                #     vm = None
+            ###################################################
+
+
+            fr = lbp_mul_term(lbp(Sign(f), Polyn(f).leading_term(), Num(f)), um)
+            gr = lbp_mul_term(lbp(Sign(g), Polyn(g).leading_term(), Num(g)), vm)
+
+            if lbp_cmp(fr, gr) == -1:
+                cp_res.append((Sign(gr), vm, g, Sign(fr), um, f))
+            else:
+                cp_res.append((Sign(fr), um, f, Sign(gr), vm, g))
+
+    return cp_res
+
+
 
     # ltf = Polyn(f).LT
     # ltg = Polyn(g).LT
@@ -218,18 +281,6 @@ def cuda_cp(B, ring):
     #                return None
     #
     # ----------------------------------
-
-    # # The full information is not needed (now), so only the product
-    # # with the leading term is considered:
-    # fr = lbp_mul_term(lbp(Sign(f), Polyn(f).leading_term(), Num(f)), um)
-    # gr = lbp_mul_term(lbp(Sign(g), Polyn(g).leading_term(), Num(g)), vm)
-
-    # # return in proper order, such that the S-polynomial is just
-    # # u_first * f_first - u_second * f_second:
-    # if lbp_cmp(fr, gr) == -1:
-    #     return (Sign(gr), vm, g, Sign(fr), um, f)
-    # else:
-    #     return (Sign(fr), um, f, Sign(gr), vm, g)
 
 
 def run(I, R):
