@@ -4,9 +4,9 @@
 import sympy as s
 import numpy as np
 from numba import cuda, jit, vectorize
-import pycuda.autoinit
-import pycuda.driver as drv
-from pycuda.compiler import SourceModule
+#import pycuda.autoinit
+#import pycuda.driver as drv
+#from pycuda.compiler import SourceModule
 
 
 class XL:
@@ -166,9 +166,10 @@ class XL:
             return set(sympy_polys)
 
         if self.mode == 'cuda':
-            if self.ring.domain == s.GF(2):
+            #if self.ring.domain == s.GF(2):
                 #reduced_matrix = self.cuda_gauss_GF2(ret, coeff_mat)
                 #print("Size: {}".format(reduced_matrix.shape))
+                #pass
             # Not done
             pass
 
@@ -236,6 +237,8 @@ class XL:
         """
         Gaussian Elimination over GF(2). Input matrix should
         be of type np.uint8
+        
+        Function courtesy of popcornell on their github as gf2elim.py
         """
         m, n = M.shape
 
