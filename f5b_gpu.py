@@ -240,43 +240,28 @@ def cuda_cp(B, ring):
                 Num(f)
             )
 
+            # def mul_term(f, term):
+            #     monom, coeff = term
+            #
+            #     if not f or not coeff:
+            #         return f.ring.zero
+            #     elif monom == f.ring.zero_monom:
+            #         return f.mul_ground(coeff)
+            #
+            #     monomial_mul = f.ring.monomial_mul
+            #     terms = [(monomial_mul(f_monom, monom), f_coeff * coeff) for f_monom, f_coeff in f.items()]
+            #     return f.new(terms)
+
 
             gr = lbp_mul_term(lbp(Sign(g), Polyn(g).leading_term(), Num(g)), vm)
 
-            #this just returns in the correct order, so should not need to be parallelized I think
+            # this just returns in the correct order, so should not need to be parallelized I think
             if lbp_cmp(fr, gr) == -1:
                 cp_res.append((Sign(gr), vm, g, Sign(fr), um, f))
             else:
                 cp_res.append((Sign(fr), um, f, Sign(gr), vm, g))
 
     return cp_res
-
-
-    # ltf = Polyn(f).LT
-    # ltg = Polyn(g).LT
-    # lt = (monomial_lcm(ltf[0], ltg[0]), domain.one) -> return tuple([ max(a, b) for a, b in zip(A, B) ])
-
-    # um = term_div(lt, ltf, domain)
-    # vm = term_div(lt, ltg, domain)
-    # ---------------------------------
-    #
-    #        a_lm, a_lc = a
-    #        b_lm, b_lc = b
-
-    #        monom = monomial_div(a_lm, b_lm)
-
-    #        if domain.is_Field:
-    #            if monom is not None:
-    #                return monom, domain.quo(a_lc, b_lc)
-    #            else:
-    #                return None
-    #        else:
-    #            if not (monom is None or a_lc % b_lc):
-    #                return monom, domain.quo(a_lc, b_lc)
-    #            else:
-    #                return None
-    #
-    # ----------------------------------
 
 
 def run(I, R):
