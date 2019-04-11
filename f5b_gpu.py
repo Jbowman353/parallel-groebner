@@ -181,8 +181,6 @@ def cuda_cp(B, ring):
 
             ltf = Polyn(f).LT
             ltg = Polyn(g).LT
-            # lt = (monomial_lcm(ltf[0], ltg[0]), domain.one)
-            # lt = tuple([ max(a, b) for a, b in zip(ltf[0], ltg[0]) ])
 
             lt = []
 
@@ -190,12 +188,9 @@ def cuda_cp(B, ring):
                 lt.append(max(a, b))
             lt = (tuple(lt), domain.one)
 
-            ##################################################
-            # um = term_div(lt, ltf, domain)
             lt_lm, lt_lc = lt
             ltf_lm, ltf_lc = ltf
 
-            # monom = monomial_div(lt_lm, ltf_lm)
             C = tuple([ a - b for a, b in zip(lt_lm, ltf_lm) ])
 
             if all(c >= 0 for c in C):
@@ -216,13 +211,10 @@ def cuda_cp(B, ring):
                 #     um = monom, domain.quo(lt_lc, ltf_lc)
                 # else:
                 #     um = None
-            ###################################################
-            ###################################################
-            # vm = term_div(lt, ltg, domain)
+
             lt_lm, lt_lc = lt
             ltg_lm, ltg_lc = ltg
 
-            # monom = monomial_div(lt_lm, ltf_lm)
             C = tuple([ a - b for a, b in zip(lt_lm, ltg_lm) ])
 
             if all(c >= 0 for c in C):
@@ -232,7 +224,7 @@ def cuda_cp(B, ring):
 
             if domain.is_Field:
                 if monom is not None:
-                    vm = monom, domain.quo(lt_lc, ltg_lc)
+                    vm = monom, lt_lc / ltg_lc
                 else:
                     vm = None
             else:
@@ -241,19 +233,23 @@ def cuda_cp(B, ring):
                 #     vm = monom, domain.quo(lt_lc, ltg_lc)
                 # else:
                 #     vm = None
-            ###################################################
+
+            fr = (
+                tuple((tuple([a + b for a, b in zip(Sign(f)[0], um[0])]), Sign(f)[1])),
+                Polyn(f).mul_term(um), # This guy is the last big issue
+                Num(f)
+            )
 
 
-            fr = lbp_mul_term(lbp(Sign(f), Polyn(f).leading_term(), Num(f)), um)
             gr = lbp_mul_term(lbp(Sign(g), Polyn(g).leading_term(), Num(g)), vm)
 
+            #this just returns in the correct order, so should not need to be parallelized I think
             if lbp_cmp(fr, gr) == -1:
                 cp_res.append((Sign(gr), vm, g, Sign(fr), um, f))
             else:
                 cp_res.append((Sign(fr), um, f, Sign(gr), vm, g))
 
     return cp_res
-
 
 
     # ltf = Polyn(f).LT
