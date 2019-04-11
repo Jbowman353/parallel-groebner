@@ -66,10 +66,10 @@ for input_data in gb_input.inputs:
     end_f5b = time.time()
     f5b_runtime = end_f5b - start_f5b
 
-    # start_f5b_gpu = time.time()
-    # res_f5b_gpu = f5b_gpu.run(I, R)
-    # end_f5b_gpu = time.time()
-    # f5b_gpu_runtime = end_f5b_gpu - start_f5b_gpu
+    start_f5b_gpu = time.time()
+    res_f5b_gpu = f5b_gpu.run(I, R)
+    end_f5b_gpu = time.time()
+    f5b_gpu_runtime = end_f5b_gpu - start_f5b_gpu
 
     output_data.append({'Input Name': fname, 'SymPy F5B Time (sec)': f5b_runtime, 'F5B-Like GPU Time (sec)': None,
                         'Matching Results?': False, 'Fastest Runtime (sec)': None, 'Number of Variables': len(var_list),
