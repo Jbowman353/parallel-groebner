@@ -536,10 +536,54 @@ def symbolic_postprocessing(matrix_info, reduced_matrix, ring):
 ###
 # Numpy/Numba jit functions
 ###
+@jit(nopython=True, fastmath=True, parallel=False)
 def np_naive_gaussian_elimination(dest, A):
     """
+    Notes:
+     * numba cpu jit with Parallel set to True causes
+       division by zero errors. Compiler may not be smart
+       enough to parallelize the correct inner loops.
+
     Simple Gaussian Elimination
+    Adapted from Alg 1.1: Naive Gaussian Elimination
+    in Faugere-Lacharte Parallel Gaussian Elimination
+    for Grobner Bases Computations over Finite Fields
+    by Martani Fayssal
+
+    Pseudocode:
+    -----------
+    r <-- 0
+    for i = 1 to m do:
+        piv_found <-- false
+        for j = r + 1 to n do:
+            if A[j, i] != 0 then:
+                r <-- r + 1
+                A[j, :] <---> A[r, :]
+                A[r, :] <-- A[r, i]^-1 * A[r, :]
+                piv_found <-- True
+        if piv_found = True:
+            for j = r + 1 to n do:
+                A[j, :] <-- A[j, :] - A[j, i] * A[r, :]
     """
+    # Some operations available in numpy are not well liked by
+    # the numba jit. Will try to keep it as simple as possible.
+    n, m = A.shape
+    r = 0
+    for i in range(m):
+        piv_found = False
+        for j in range(r + 1, n):
+            if A[j, i] != 0:
+                r += 1
+                temp = A[j, :].copy()
+                A[j, :] = A[r, :]
+                A[r, :] = temp
+                A[r, :] = A[r, i]**-1 * A[r, :]
+                piv_found = True
+        if piv_found:
+            for j in range(r + 1, n):
+                A[j, :] = A[j, :] - A[j, i] * A[r, :]
+
+    dest = A  # This has something to do with CUDA
     return dest
 
 
