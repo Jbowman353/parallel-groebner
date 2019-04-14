@@ -239,7 +239,54 @@ def cuda_cp(B, ring):
                 Polyn(f).mul_term(um),  # This guy is the last big issue
                 Num(f)
             )
-
+            
+            def mul_poly_by_term(f, term):
+                """
+                Local term * poly multiplication function.
+                Takes a PolyElement f, and tuple term
+                Returns a list of term tuples representing a polynomial
+                
+                Ex: mul_poly_by_term(f1, ((0, 0, 0), 1))
+                """
+                new_poly = []
+                mono_mul = lambda m1, m2: tuple([a + b for a, b in zip(m1, m2)])
+                for m, c in f.terms():
+                    monom = mono_mul(term[0], m)
+                    coeff = c * term[1]
+                    new_poly.append((monom, coeff))
+                return new_poly
+            
+            def mul_tlist_by_term(tlist, term):
+                """
+                term * poly for polynomial term list form
+                In: tlist: [((monom), coeff)...], term: ((monom), coeff)
+                Out: [((monom), coeff)...]
+                """
+                mono_mul = lambda m1, m2: tuple([a + b for a, b in zip(m1, m2)])
+                new_poly = []
+                for m, c in tlist:
+                    monom = mono_mul(term[0], m)
+                    coeff = c * term[1]
+                    new_poly.append((monom, coeff))
+                return new_poly
+            
+            def term_list_to_sympy(tlist, ring):
+                """
+                Given a polynomial as a list of term tuples
+                return a PolyElement object in the given ring.
+                
+                Ex: tlist = [((1, 2, 3), 1), ((2, 0, 4), 3))]
+                sympy_poly = term_list_to_sympy(tlist, ring)
+                >>> x*y**2*z***3 + 3*x**2*z**4
+                >>> type(sympy_poly) -> PolyElement
+                """
+                pexp = []
+                for m, c in tlist:
+                    pexp.append('+' + str(c))
+                    for e, s in zip(m, ring.symbols):
+                        pexp.append('*' + str(s) + '**' + str(e))
+                return ring.from_expr(''.join(pexp))
+            
             # def mul_term(f, term):
             #     monom, coeff = term
             #
