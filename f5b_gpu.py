@@ -233,10 +233,10 @@ def cuda_cp(B, ring):
                 #     vm = monom, domain.quo(lt_lc, ltg_lc)
                 # else:
                 #     vm = None
-
+            f2 = tuple(Polyn(f))
             fr = (
                 tuple((tuple([a + b for a, b in zip(Sign(f)[0], um[0])]), Sign(f)[1])),
-                Polyn(f).mul_term(um), # This guy is the last big issue
+                Polyn(f).mul_term(um),  # This guy is the last big issue
                 Num(f)
             )
 
