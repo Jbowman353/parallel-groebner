@@ -425,11 +425,6 @@ def cuda_gauss_elimination(matrix_info, ring, mode=None):
     Note: Most recent CUDA platform with RTX cards has
     optimized performance with half precision floats.
     May be something to test.
-
-    GBLA style reduction is an absolute moonshot.
-    Leave that for absolute last, compare between CPU/GPU
-    Performance on Gauss elimination, and between matrix
-    elimination(both styles) and F5B incremental.
     """
     domain = ring.domain
     if domain not in [QQ, RR]:
