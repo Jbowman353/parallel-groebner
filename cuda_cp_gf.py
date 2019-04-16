@@ -4,8 +4,6 @@
 import sys
 
 from sympy import *
-from sympy import Rational
-from gmpy2 import mpq, mpfr
 from sympy.polys.groebnertools import *
 
 import numpy as np
@@ -18,9 +16,8 @@ def cp_cuda(p1, p2, ring):
     Called in the same way as critical_pair, but
     has many supporting functions.
 
-    The cuda arrays will all be of type np.float32
-    because that's what they tell me to do. 
-    Will require casting on parse depending on domain
+    The cuda arrays will all be of type np.uint16
+    for use with GF(65521)
 
     Prepares data to send to PyCUDA/Numba Cuda.Jit kernel.
     
@@ -31,9 +28,9 @@ def cp_cuda(p1, p2, ring):
 
     modulus = ring.domain.mod
     nvars = len(ring.symbols)  # for striding
-    lt_buf = np.zeros(nvars + 1, dtype=np.int16)
+    lt_buf = np.zeros(nvars + 1, dtype=np.uint16)
     lt_buf[-1] = 1  
-    fdest = np.zeros(2 * nvars + 1, dtype=np.int16)
+    fdest = np.zeros(2 * nvars + 1, dtype=np.uint16)
     gdest = np.zeros_like(fdest)
 
     f = get_cuda_cp_array(mod_pair[0], nvars)
@@ -81,7 +78,7 @@ def get_cuda_cp_array(mod_pair_part, nvars):
     appropriate for CP calculation
     Modifies in place.
     """
-    cuda_cp_array = np.zeros(2 * nvars + 1, dtype=np.int16)
+    cuda_cp_array = np.zeros(2 * nvars + 1, dtype=np.uint16)
     
     # Signature Multiplier
     for i, s in enumerate(mod_pair_part[0]):
