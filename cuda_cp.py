@@ -4,6 +4,7 @@
 import sys
 
 from sympy import Rational
+from sympy.polys.domains import QQ, RR
 from sympy.polys.groebnertools import *
 
 import numpy as np
@@ -258,3 +259,161 @@ if __name__ == "__main__":
         print("Original Critical Pair {}:".format(i))
         for j, part in enumerate(cp):
             print(j, part)
+
+
+################################################################################
+def old_cuda_cp(B, ring):
+    # Original Form:
+    # CP = [critical_pair(B[i], B[j], ring) for i in range(len(B)) for j in range(i + 1, len(B))]
+
+    # LT format -> ((0, 1, 0, 0), 6):
+    #   the first tuple represents the exponents for each possible term (x0, x1, x2, x3) Above, the tuple is x1 ** 2
+    #   the last number represents the coefficient, so the whole tuple together represents 6x ** 2
+    #
+    # The Polyn(f).leading_term() below is similar, but in the format ' 6*x1**2 '
+    #
+    # Required Output format:
+    #
+    # [
+    #   (Sign(gr), vm, g, Sign(fr), um, f),
+    #   (Sign(gr), vm, g, Sign(fr), um, f)
+    # ]
+
+    cp_res = []
+    for i in range(len(B)):
+        for j in range(i + 1, len(B)):
+            f = B[i]
+            g = B[j]
+
+            domain = ring.domain
+
+            ltf = Polyn(f).LT
+            ltg = Polyn(g).LT
+
+            lt = []
+
+            for a, b in zip(ltf[0], ltg[0]):
+                lt.append(max(a, b))
+            lt = (tuple(lt), domain.one)
+
+            lt_lm, lt_lc = lt
+            ltf_lm, ltf_lc = ltf
+
+            C = tuple([a - b for a, b in zip(lt_lm, ltf_lm)])
+
+            if all(c >= 0 for c in C):
+                monom = tuple(C)
+            else:
+                monom = None
+
+            if domain.is_Field:
+                if monom is not None:
+                    # um = monom, domain.quo(lt_lc, ltf_lc)
+                    um = monom, lt_lc / ltf_lc
+                else:
+                    um = None
+            else:
+                print('ERROR - Non-Field domains not supported in CUDA version')
+                exit()
+                # if not (monom is None or lt_lc % ltf_lc):
+                #     um = monom, domain.quo(lt_lc, ltf_lc)
+                # else:
+                #     um = None
+
+            lt_lm, lt_lc = lt
+            ltg_lm, ltg_lc = ltg
+
+            C = tuple([a - b for a, b in zip(lt_lm, ltg_lm)])
+
+            if all(c >= 0 for c in C):
+                monom = tuple(C)
+            else:
+                monom = None
+
+            if domain.is_Field:
+                if monom is not None:
+                    vm = monom, lt_lc / ltg_lc
+                else:
+                    vm = None
+            else:
+                print('ERROR - Non-field domains not supported in CUDA version')
+                # if not (monom is None or lt_lc % ltg_lc):
+                #     vm = monom, domain.quo(lt_lc, ltg_lc)
+                # else:
+                #     vm = None
+            f2 = tuple(Polyn(f))
+            fr = (
+                tuple((tuple([a + b for a, b in zip(Sign(f)[0], um[0])]), Sign(f)[1])),
+                Polyn(f).mul_term(um),  # This guy is the last big issue
+                Num(f)
+            )
+
+            def mul_poly_by_term(f, term):
+                """
+                Local term * poly multiplication function.
+                Takes a PolyElement f, and tuple term
+                Returns a list of term tuples representing a polynomial
+
+                Ex: mul_poly_by_term(f1, ((0, 0, 0), 1))
+                """
+                new_poly = []
+                mono_mul = lambda m1, m2: tuple([a + b for a, b in zip(m1, m2)])
+                for m, c in f.terms():
+                    monom = mono_mul(term[0], m)
+                    coeff = c * term[1]
+                    new_poly.append((monom, coeff))
+                return new_poly
+
+            def mul_tlist_by_term(tlist, term):
+                """
+                term * poly for polynomial term list form
+                In: tlist: [((monom), coeff)...], term: ((monom), coeff)
+                Out: [((monom), coeff)...]
+                """
+                mono_mul = lambda m1, m2: tuple([a + b for a, b in zip(m1, m2)])
+                new_poly = []
+                for m, c in tlist:
+                    monom = mono_mul(term[0], m)
+                    coeff = c * term[1]
+                    new_poly.append((monom, coeff))
+                return new_poly
+
+            def term_list_to_sympy(tlist, ring):
+                """
+                Given a polynomial as a list of term tuples
+                return a PolyElement object in the given ring.
+
+                Ex: tlist = [((1, 2, 3), 1), ((2, 0, 4), 3))]
+                sympy_poly = term_list_to_sympy(tlist, ring)
+                >>> x*y**2*z***3 + 3*x**2*z**4
+                >>> type(sympy_poly) -> PolyElement
+                """
+                pexp = []
+                for m, c in tlist:
+                    pexp.append('+' + str(c))
+                    for e, s in zip(m, ring.symbols):
+                        pexp.append('*' + str(s) + '**' + str(e))
+                return ring.from_expr(''.join(pexp))
+
+            # def mul_term(f, term):
+            #     monom, coeff = term
+            #
+            #     if not f or not coeff:
+            #         return f.ring.zero
+            #     elif monom == f.ring.zero_monom:
+            #         return f.mul_ground(coeff)
+            #
+            #     monomial_mul = f.ring.monomial_mul
+            #     terms = [(monomial_mul(f_monom, monom), f_coeff * coeff) for f_monom, f_coeff in f.items()]
+            #     return f.new(terms)
+
+            gr = lbp_mul_term(lbp(Sign(g), Polyn(g).leading_term(), Num(g)), vm)
+
+            # this just returns in the correct order, so should not need to be parallelized I think
+            if lbp_cmp(fr, gr) == -1:
+                cp_res.append((Sign(gr), vm, g, Sign(fr), um, f))
+            else:
+                cp_res.append((Sign(fr), um, f, Sign(gr), vm, g))
+
+    return cp_res
+
