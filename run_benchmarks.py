@@ -1,7 +1,7 @@
 from sympy.polys.groebnertools import groebner, is_groebner
 from sympy.polys.orderings import lex, grlex
 from sympy.polys.rings import ring, xring
-from sympy.polys.domains import ZZ, QQ
+from sympy.polys.domains import ZZ, QQ, RR
 
 import f5b_gpu
 import gb_input # take gb_input.py generated file from input_convert and make sure it's visible
@@ -44,7 +44,8 @@ for input_data in gb_input.inputs:
     var_str_list = input_data['vars']
     sys_string = input_data['system']
 
-    r_v = xring(var_str_list, QQ, lex)
+    r_v = xring(var_str_list, RR, lex)
+    # r_v = xring(var_str_list, QQ, lex)
 
     var_list = []
     for i in range(len(var_str_list)):
@@ -66,17 +67,34 @@ for input_data in gb_input.inputs:
     end_f5b = time.time()
     f5b_runtime = end_f5b - start_f5b
 
-    start_f5b_gpu = time.time()
-    res_f5b_gpu = f5b_gpu.run(I, R)
-    end_f5b_gpu = time.time()
-    f5b_gpu_runtime = end_f5b_gpu - start_f5b_gpu
+    start_cp_gpu = time.time()
+    res_cp_gpu = f5b_gpu.run(I, R, True, False)  # Only GPU CP
+    end_cp_gpu = time.time()
+    cp_gpu_runtime = end_cp_gpu - start_cp_gpu
+
+    #######
+    #
+    #   HAVE NOT SET UP CP, SP, CP+SP CASES YET
+    #######
+
+    # start_sp_gpu = time.time()
+    # res_sp_gpu = f5b_gpu.run(I, R, False, True)  # Only GPU Spoly
+    # end_sp_gpu = time.time()
+    # sp_gpu_runtime = end_sp_gpu - start_sp_gpu
+    #
+    # start_cpsp_gpu = time.time()
+    # res_cpsp_gpu = f5b_gpu.run(I, R, True, True)  # Both CP and SPoly
+    # end_cpsp_gpu = time.time()
+    # cpsp_gpu_runtime = end_cpsp_gpu - start_cpsp_gpu
+
+
 
     output_data.append({
         'Input Name': fname,
         'SymPy F5B Time (sec)': f5b_runtime,
-        'F5B-Like GPU Time (sec)': f5b_gpu_runtime,
-        'Matching Results?': res_f5b == res_f5b_gpu,
-        'Fastest Runtime (sec)': min(f5b_runtime, f5b_gpu_runtime),
+        'CP GPU Time (sec)': cp_gpu_runtime,
+        # 'SP GPU Time (sec)': sp_gpu_runtime,
+        # 'CP+SP GPU Time (sec)': cpsp_gpu_runtime,
         'Number of Variables': len(var_list),
         'Number of Polynomials': len(I),
         'Max Degree': get_degree(sys_string)
