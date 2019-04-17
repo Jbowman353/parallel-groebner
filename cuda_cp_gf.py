@@ -194,7 +194,6 @@ def parse_cuda_cp_to_sympy(cuda_cp, pair, ring):
 
            ring: need it for domain
     """
-    domain = ring.domain
     nvars = len(ring.symbols)
 
     gpu_sympy_cp = []
@@ -207,19 +206,12 @@ def parse_cuda_cp_to_sympy(cuda_cp, pair, ring):
     gpu_sympy_cp.append([cuda_cp[1][nvars:-1], cuda_cp[1][-1]]) # vm
     gpu_sympy_cp.append(pair[1]) # g
 
-    # Type casting - sigs, exponents integers, coeffs depend on domain
-    # Sign(fr), um exponents, Sign(gr), vm exponents
+    # Retuple
     gpu_sympy_cp[0][0] = tuple([s for s in gpu_sympy_cp[0][0]])
     gpu_sympy_cp[1][0] = tuple([e for e in gpu_sympy_cp[1][0]])
     gpu_sympy_cp[3][0] = tuple([s for s in gpu_sympy_cp[3][0]])
     gpu_sympy_cp[4][0] = tuple([e for e in gpu_sympy_cp[4][0]])
     
-    if domain == QQ:
-        # um, vm coefficient
-        gpu_sympy_cp[1][1] = mpfr(float(gpu_sympy_cp[1][1])).as_simple_fraction()
-        gpu_sympy_cp[4][1] = mpfr(float(gpu_sympy_cp[4][1])).as_simple_fraction()
-
-    # Retuple
     gpu_sympy_cp[0] = tuple(gpu_sympy_cp[0])
     gpu_sympy_cp[1] = tuple(gpu_sympy_cp[1])
     gpu_sympy_cp[3] = tuple(gpu_sympy_cp[3])
