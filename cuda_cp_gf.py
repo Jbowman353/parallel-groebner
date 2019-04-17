@@ -162,20 +162,20 @@ def numba_critical_pairs(nvars, modulus, lt_buf, f, g, fdest, gdest):
 
     # Monomial LCM
     for i in range(nvars):
-        lt_buf[i] = max(f[nvars + i], g[nvars + i])
+        lt_buf[i] = max((f[nvars + i] % modulus), (g[nvars + i] % modulus))
 
     # Calculate um, vm (data independent)
     for i in range(nvars):
-        fdest[nvars + i] = (lt_buf[i] - f[nvars + i]) % modulus
-        gdest[nvars + i] = (lt_buf[i] - g[nvars + i]) % modulus
-
-    fdest[-1] = lt_buf[-1] % f[-1]
-    gdest[-1] = lt_buf[-1] % g[-1]
+        fdest[nvars + i] = ((lt_buf[i] % modulus) - (f[nvars + i] % modulus)) % modulus
+        gdest[nvars + i] = ((lt_buf[i] % modulus) - (g[nvars + i] % modulus)) % modulus
+        
+    fdest[-1] = ((lt_buf[-1] % modulus) % (f[-1] % modulus)) % modulus
+    gdest[-1] = ((lt_buf[-1] % modulus) % (g[-1] % modulus)) % modulus
 
     # Calculate Sign(fr), Sign(gr) (data independent)
     for i in range(nvars):
-        fdest[i] = (f[i] + fdest[nvars + i]) % modulus
-        gdest[i] = (g[i] + gdest[nvars + i]) % modulus
+        fdest[i] = ((f[i] % modulus) + (fdest[nvars + i] % modulus)) % modulus
+        gdest[i] = ((g[i] % modulus) + (gdest[nvars + i] % modulus)) % modulus
 
 
 def parse_cuda_cp_to_sympy(cuda_cp, pair, ring):
