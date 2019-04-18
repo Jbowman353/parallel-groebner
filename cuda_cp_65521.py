@@ -3,18 +3,12 @@
 
 import sys
 from math import ceil
-import pickle
 
 from sympy import *
 from sympy.polys.groebnertools import *
 
 import numpy as np
 from numba import cuda
-
-# Multiplicative Inverses
-mi_65521 = open('./mul_inv_65521', 'rb')
-MI_65521 = pickle.load(mi_65521)
-mi_65521.close()
 
 
 def cp_cuda(p1, p2, ring):
@@ -48,14 +42,14 @@ def cp_cuda(p1, p2, ring):
     cuda_cp_arys = numba_cp_kernel_launch(kernel_data)
 
     # After kernel, append modular inverse to fdest gdest [-1]
-    if (f[-1] % modulus) == 1:
+    if f[-1] == 1:
         fdest[-1] = 1
-    else:
-        fdest[-1] = MI_65521[str(f[-1] % modulus)]
-    if (g[-1] % modulus) == 1:
+    elif f[-1] == -1:
+        fdest[-1] = 32002
+    if g[-1] == 1:
         gdest[-1] = 1
-    else:
-        gdest[-1] = MI_65521[str(g[-1] % modulus)]
+    elif g[-1] == -1:
+        gdest[-1] = 32002
         
     
     gpu_cp = parse_cuda_cp_to_sympy(cuda_cp_arys, (p1, p2), ring)
