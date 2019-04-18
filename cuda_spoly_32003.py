@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import sys
+from math import ceil
 from itertools import chain
 
 from sympy import *
@@ -90,11 +91,16 @@ def cuda_s_poly2(cp, ring):
     gc_dest = np.zeros_like(gc)
 
     # Prepare threads
-
+    threadsperblock = (32, 32)
+    blockspergrid_x = ceil((fsm_dest.size + gsm_dest.size) / threadsperblock[0])
+    blockspergrid_y = ceil((fsm_dest.size + gsm_dest.size) / threadsperblock[1])
+    blockspergrid = (blockspergrid_x, blockspergrid_y)
 
     # launch kernel
-    spoly_mul_numba_kernel(fsm_dest, gsm_dest, fc_dest, gc_dest,
-                           fsm, gsm, fc, gc, um, vm, uv_coeffs, nvars, modulus)
+    spoly_mul_numba_kernel[blockspergrid, threadsperblock](fsm_dest, gsm_dest,
+                                                           fc_dest, gc_dest,
+                                                           fsm, gsm, fc, gc, um, vm,
+                                                           uv_coeffs, nvars, modulus)
 
     # Sub Step
     # Get all monomials in both umf, vmg, sort by ordering, reindex
@@ -104,7 +110,6 @@ def cuda_s_poly2(cp, ring):
             return (((ring.zero_monom), 0),
                     ring.from_expr('0'), 0)
 
-
     fnew = [tuple(f) for f in fsm_dest]
     gnew = [tuple(g) for g in gsm_dest]
     fnew_sig = fnew[0]
@@ -113,7 +118,8 @@ def cuda_s_poly2(cp, ring):
     gnew_monoms = [g for g in gnew[1:]]
 
     all_monoms = set(fnew_monoms).union(set(gnew_monoms))
-    all_monoms = sorted(all_monoms, key=monomial_key(order=ring.order), reverse=True)
+    all_monoms = sorted(all_monoms, key=monomial_key(order=ring.order),
+                        reverse=True)
 
     spair_matrix = np.zeros((2, len(all_monoms)), dtype=np.int16)
 
@@ -148,11 +154,12 @@ def spoly_numba_io(spair_info, ring):
     # fill at coordinates with nonzero entries
     for coords in spair_info["nze"]:
         spair_matrix[coords[0][0], coords[0][1]] = coords[1]
-    
+
+    # prepare threads
     threadsperblock = 32
     blockspergrid = (dest.size + (threadsperblock - 1)) // threadsperblock
-        
-    spoly_sub_numba_kernel(dest, spair_matrix, modulus)
+
+    spoly_sub_numba_kernel[blockspergrid, threadsperblock](dest, spair_matrix, modulus)
 
     # parse
     lb_spoly = parse_gpu_spoly(dest, spair_info, ring)
@@ -174,9 +181,9 @@ def spoly_sub_numba_kernel(dest, spair, modulus):
     part of the process of F4 reduction.
     """
     pos = cuda.grid(1)
-    
-    for i in range(dest.size):
-        dest[i] = ((spair[0][i] % modulus) - (spair[1][i] % modulus)) % modulus
+
+    if pos < dest.size:
+        dest[pos] = ((spair[0][pos] % modulus) - (spair[1][pos] % modulus)) % modulus
 
 
 @cuda.jit
@@ -193,23 +200,20 @@ def spoly_mul_numba_kernel(fsm_dest, gsm_dest, fc_dest, gc_dest,
          Likely from incorrect inversion operation
          Keeping the constant term. Still don't know
     """
-    # multiply um by fsm, vm by gsm
-    frows = fsm.shape[0]
-    for j in range(frows):
-        for i in range(nvars):
-            fsm_dest[j, i] = ((um[i] % modulus) + (fsm[j, i] % modulus)) % modulus
+    i, j = cuda.grid(2)
 
-    grows = gsm.shape[0]
-    for j in range(grows):
-        for i in range(nvars):
-            gsm_dest[j, i] = ((vm[i] % modulus) + (gsm[j, i] % modulus)) % modulus
+    if j < fsm_dest.shape[0] and i < fsm_dest.shape[1]:
+        fsm_dest[j, i] = ((um[i] % modulus) + (fsm[j, i] % modulus)) % modulus
 
-    # multiply coefficients
-    for i in range(1, fc_dest.size):
+    if j < gsm_dest.shape[0] and i < gsm_dest.shape[1]:
+        gsm_dest[j, i] = ((vm[i] % modulus) + (gsm[j, i] % modulus)) % modulus
+
+    # multiply coefficients: 0th index should be zero by construction
+    if i < (fc_dest.size):
         fc_dest[i] = ((uv_coeffs[0] % modulus) * (fc[i] % modulus)) % modulus
 
-    for i in range(1, gc_dest.size):
-        gc_dest[i] = ((uv_coeffs[1] % modulus) * (gc[i] % modulus)) % modulus
+    if j < (gc_dest.size):
+        gc_dest[j] = ((uv_coeffs[1] % modulus) * (gc[j] % modulus)) % modulus
 
 
 def symbolic_preprocessing(Ld, B, ring):
@@ -377,7 +381,8 @@ if __name__ == "__main__":
           for i in range(len(B)) for j in range(i + 1, len(B))]
     CP = sorted(CP, key=lambda cp: cp_key(cp, r), reverse=True)
 
-    S = [cuda_s_poly(CP[i], B, r) for i in range(len(CP))]
+    #S = [cuda_s_poly(CP[i], B, r) for i in range(len(CP))]
+    S = [cuda_s_poly2(CP[i], r) for i in range(len(CP))]
     S_orig = [s_poly(CP[i]) for i in range(len(CP))]
 
     print("Output of original s_poly")
