@@ -1,7 +1,8 @@
 from sympy.polys.groebnertools import *
 # from numba import cuda
 
-from cuda_cp_gf import cp_cuda
+# from cuda_cp_gf import cp_cuda
+from cuda_cp_65521 import cp_cuda
 from cuda_spoly_65521 import cuda_s_poly, cuda_s_poly2
 # from cuda_spoly_32003 import cuda_s_poly2
 

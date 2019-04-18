@@ -1,4 +1,4 @@
-from sympy.polys.groebnertools import groebner, is_groebner
+from sympy.polys.groebnertools import groebner, is_groebner, is_minimal, is_reduced
 from sympy.polys.orderings import lex, grlex, grevlex
 from sympy.polys.rings import ring, xring
 from sympy.polys.domains import ZZ, QQ, RR, GF
@@ -96,20 +96,32 @@ for input_data in gb_input.inputs:
         'Number of Polynomials': len(I),
         'Max Degree': get_degree(sys_string)
     })
+    print('------------------------')
     print('Sympy F5B Time: ' + str(f5b_runtime))
     print(res_f5b)
-    print(is_groebner(res_f5b, R))
+    print('GB?', is_groebner(res_f5b, R))
+    print('Minimal?', is_minimal(res_f5b, R))
+    #print('Reduced?', is_reduced(res_f5b, R))
+    print('--')
     print('GPU CP Time: ' + str(cp_gpu_runtime))
     print(res_cp_gpu)
-    print(is_groebner(res_f5b, R))
+    print('GB?', is_groebner(res_cp_gpu, R))
+    print('Minimal?', is_minimal(res_cp_gpu, R))
+    #print('Reduced?', is_reduced(res_cp_gpu, R))
+    print('--')
     print('GPU SP Time: ' + str(sp_gpu_runtime))
     print(res_sp_gpu)
-    print(is_groebner(res_f5b, R))
+    print('GB?', is_groebner(res_sp_gpu, R))
+    print('Minimal?', is_minimal(res_sp_gpu, R))
+    #print('Reduced?', is_reduced(res_sp_gpu, R))
+    print('--')
     print('GPU CP+SP Time: ' + str(cpsp_gpu_runtime))
     print(res_cpsp_gpu)
-    print(is_groebner(res_f5b, R))
+    print('GB?', is_groebner(res_cpsp_gpu, R))
+    print('Minimal?', is_minimal(res_cpsp_gpu, R))
+    #print('Reduced?', is_reduced(res_cpsp_gpu, R))
 
-    print(fname + ' Completed!\n ----------\n\n')
+    print(fname + ' Completed!\n--------------------\n\n')
 
 
 with open(output_file_path, 'w', newline='') as csv_file:
