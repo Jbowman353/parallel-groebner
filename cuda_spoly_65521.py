@@ -2,6 +2,7 @@
 # -*- coding: utf-8 -*-
 
 import sys
+from math import ceil
 from itertools import chain
 
 from sympy import *
