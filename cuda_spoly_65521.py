@@ -90,11 +90,15 @@ def cuda_s_poly2(cp, ring):
     gc_dest = np.zeros_like(gc)
 
     # prepare threads
-    
+    threadsperblock = (32, 32)
+    blockspergrid_x = ceil((fsm_dest.size + gsm_dest.size) / threadsperblock[0])
+    blockspergrid_y = ceil((fsm_dest.size + gsm_dest.size) / threadsperblock[1])
+    blockspergrid = (blockspergrid_x, blockspergrid_y)  
     
     # launch kernel
-    spoly_mul_numba_kernel(fsm_dest, gsm_dest, fc_dest, gc_dest,
-                           fsm, gsm, fc, gc, um, vm, uv_coeffs, nvars, modulus)
+    spoly_mul_numba_kernel[blockspergrid, threadsperblock](fsm_dest, gsm_dest, fc_dest, gc_dest,
+                                                           fsm, gsm, fc, gc, um, vm, uv_coeffs,
+                                                           nvars, modulus)
 
     # Sub Step
     # Get all monomials in both umf, vmg, sort by ordering, reindex
@@ -196,22 +200,17 @@ def spoly_mul_numba_kernel(fsm_dest, gsm_dest, fc_dest, gc_dest,
          Likely from incorrect inversion operation
          Keeping the constant term. Still don't know
     """
-    # multiply um by fsm, vm by gsm
-    frows = fsm.shape[0]
-    for j in range(frows):
-        for i in range(nvars):
-            fsm_dest[j, i] = ((um[i] % modulus) + (fsm[j, i] % modulus)) % modulus
+    i, j = cuda.grid(2)
+    if j < fsm_dest.shape[0] and i < fsm_dest.shape[1]:
+        fsm_dest[j, i] = ((um[i] % modulus) + (fsm[j, i] % modulus)) % modulus
 
-    grows = gsm.shape[0]
-    for j in range(grows):
-        for i in range(nvars):
-            gsm_dest[j, i] = ((vm[i] % modulus) + (gsm[j, i] % modulus)) % modulus
+    if j < gsm_dest.shape[0] and i < gsm_dest.shape[1]:
+        gsm_dest[j, i] = ((vm[i] % modulus) + (gsm[j, i] % modulus)) % modulus
 
-    # multiply coefficients
-    for i in range(1, fc_dest.size):
+    if i < fc_dest.size:
         fc_dest[i] = ((uv_coeffs[0] % modulus) * (fc[i] % modulus)) % modulus
 
-    for i in range(1, gc_dest.size):
+    if j < gc_dest.size:
         gc_dest[i] = ((uv_coeffs[1] % modulus) * (gc[i] % modulus)) % modulus
 
 
