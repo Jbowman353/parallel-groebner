@@ -51,11 +51,11 @@ def cp_cuda(p1, p2, ring):
     if (f[-1] % modulus) == 1:
         fdest[-1] = 1
     else:
-        fdest[-1] = MI_32003[str(f[-1] % modulus)]
+        fdest[-1] = MI_65521[str(f[-1] % modulus)]
     if (g[-1] % modulus) == 1:
         gdest[-1] = 1
     else:
-        gdest[-1] = MI_32003[str(g[-1] % modulus)]
+        gdest[-1] = MI_65521[str(g[-1] % modulus)]
         
     
     gpu_cp = parse_cuda_cp_to_sympy(cuda_cp_arys, (p1, p2), ring)
