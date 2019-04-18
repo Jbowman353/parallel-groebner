@@ -148,7 +148,10 @@ def spoly_numba_io(spair_info, ring):
     # fill at coordinates with nonzero entries
     for coords in spair_info["nze"]:
         spair_matrix[coords[0][0], coords[0][1]] = coords[1]
-
+    
+    threadsperblock = 32
+    blockspergrid = (dest.size + (threadsperblock - 1)) // threadsperblock
+        
     spoly_sub_numba_kernel(dest, spair_matrix, modulus)
 
     # parse
@@ -170,6 +173,8 @@ def spoly_sub_numba_kernel(dest, spair, modulus):
     to memory access times, but parallel. Demonstrates
     part of the process of F4 reduction.
     """
+    pos = cuda.grid(1)
+    
     for i in range(dest.size):
         dest[i] = ((spair[0][i] % modulus) - (spair[1][i] % modulus)) % modulus
 
