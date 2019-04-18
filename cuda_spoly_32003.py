@@ -12,7 +12,7 @@ import numpy as np
 from numba import cuda
 
 
-def cuda_s_poly(cp, ring):
+def cuda_s_poly(cp, B, ring):
     """
     Execute as a script to test.
     Called slightly differently from s_poly,
@@ -54,7 +54,6 @@ def cuda_s_poly2(cp, ring):
     in between. May be improved by use of
     a cuda stream in CUDA-C or PyCUDA
     """
-    order = ring.order
     modulus = ring.domain.mod
     nvars = len(ring.symbols)
 
@@ -67,13 +66,6 @@ def cuda_s_poly2(cp, ring):
     fnum = Num(f)
     gnum = Num(g)
 
-    # Fix this later
-    # Here's the PROBLEM
-    # Coefficient Values may come in negative, and will first be modded
-    # Modulo INT_MAX_LENGTH. 14 is congruent to -1 mod INTMAX mod 65521
-    # use a larger int that supports negative numbers for coeffs?
-    # Coefficient arrays should be int32 to catch negative numbers and
-    # integer overflow
     um = list(cp[1][0])
     vm = list(cp[4][0]) # separate 
     uc = cp[1][1]
@@ -97,6 +89,9 @@ def cuda_s_poly2(cp, ring):
     fc_dest = np.zeros_like(fc)
     gc_dest = np.zeros_like(gc)
 
+    # Prepare threads
+
+
     # launch kernel
     spoly_mul_numba_kernel(fsm_dest, gsm_dest, fc_dest, gc_dest,
                            fsm, gsm, fc, gc, um, vm, uv_coeffs, nvars, modulus)
@@ -104,7 +99,12 @@ def cuda_s_poly2(cp, ring):
     # Sub Step
     # Get all monomials in both umf, vmg, sort by ordering, reindex
     # f, g in a 2d coefficient array, send to other kernel
-    
+    if sum(sum(fsm_dest)) == 0:
+        if sum(sum(gsm_dest)) == 0:
+            return (((ring.zero_monom), 0),
+                    ring.from_expr('0'), 0)
+
+
     fnew = [tuple(f) for f in fsm_dest]
     gnew = [tuple(g) for g in gsm_dest]
     fnew_sig = fnew[0]
@@ -127,17 +127,16 @@ def cuda_s_poly2(cp, ring):
                                      gnew_sig, fsig_idx, gsig_idx, fnum,
                                      gnum, ring)
 
+    if not spair_info:
+        return (((ring.zero_monom), 0),
+                ring.from_expr('0'), 0)
+
     lb_spoly = spoly_numba_io(spair_info, ring)
 
     return lb_spoly
 
-def spoly_numba_io(spair_info, ring):
-    """
-    Prepare the mini macaulay matrix for the numba kernel
-    Called after symbolic_preprocessing only.
 
-    Coefficient values should be of size int32
-    """
+def spoly_numba_io(spair_info, ring):
     modulus = ring.domain.mod
 
     cols = spair_info["cols"]
@@ -273,16 +272,22 @@ def parse_gpu_spoly(dest, spair_info, ring):
     spoly_sig = spair_info["spair"][0][0]
     spoly_num = spair_info["spair"][0][2]
 
+    # Zero reduction?
+    if spair_info["monomials"] == [ring.zero_monom]:
+        return spair_info["spair"][0]
+
     pexp = []
     for i, c in enumerate(dest):
         if c != 0:
             pexp.append('+' + str(c))
             for j, e in enumerate(spair_info["monomials"][i]):
                 if e != 0:
-                    pexp.append('*' + str(r.symbols[j]) + '**' + str(e))
-    spol = ring.from_expr(''.join(pexp))
-    lb_spol = tuple([spoly_sig, spol, spoly_num])
-    return lb_spol
+                    pexp.append('*' + str(ring.symbols[j]) + '**' + str(e))
+    if pexp != []:
+        spol = ring.from_expr(''.join(pexp))
+        lb_spol = tuple([spoly_sig, spol, spoly_num])
+        return lb_spol
+    return (((ring.zero_monom), 0), ring.from_expr('0'), 0)
 
 
 def parse_gpu_spoly_mul(spair_matrix, all_monoms, fnew_sig, gnew_sig,
@@ -295,9 +300,12 @@ def parse_gpu_spoly_mul(spair_matrix, all_monoms, fnew_sig, gnew_sig,
     fsig = (tuple(fnew_sig), fsig_idx)
     gsig = (tuple(gnew_sig), gsig_idx)
 
+    if all_monoms == [ring.zero_monom] or sum(sum(spair_matrix)) == 0:
+        return None
+
     fpexp = []
     gpexp = []
-
+    
     for i, c in enumerate(spair_matrix[0]):
         if c != 0:
             fpexp.append('+' + str(c))
@@ -364,7 +372,7 @@ if __name__ == "__main__":
           for i in range(len(B)) for j in range(i + 1, len(B))]
     CP = sorted(CP, key=lambda cp: cp_key(cp, r), reverse=True)
 
-    S = [cuda_s_poly(CP[i], r) for i in range(len(CP))]
+    S = [cuda_s_poly(CP[i], B, r) for i in range(len(CP))]
     S_orig = [s_poly(CP[i]) for i in range(len(CP))]
 
     print("Output of original s_poly")
