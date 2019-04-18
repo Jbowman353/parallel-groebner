@@ -12,7 +12,7 @@ import numpy as np
 from numba import cuda
 
 
-def cuda_s_poly(cp, r):
+def cuda_s_poly(cp, ring):
     """
     Execute as a script to test.
     Called slightly differently from s_poly,
@@ -39,14 +39,14 @@ def cuda_s_poly(cp, r):
     Ld = [(cp[0], cp[1], cp[2]), (cp[0], cp[4], cp[5])]
 
     # Get Length/monomials of destination array
-    spair_info = symbolic_preprocessing(Ld, B, r)
+    spair_info = symbolic_preprocessing(Ld, B, ring)
 
-    gpu_spoly = spoly_numba_io(spair_info, r)
+    gpu_spoly = spoly_numba_io(spair_info, ring)
 
     return gpu_spoly
 
 
-def cuda_s_poly2(cp, r):
+def cuda_s_poly2(cp, ring):
     """
     Another version of s_poly that
     just calculates each step in separate kernels.
@@ -54,9 +54,8 @@ def cuda_s_poly2(cp, r):
     in between. May be improved by use of
     a cuda stream in CUDA-C or PyCUDA
     """
-    order = r.order
-    modulus = r.domain.mod
-    nvars = len(r.symbols)
+    modulus = ring.domain.mod
+    nvars = len(ring.symbols)
 
     # Multiply step
     f = cp[2]
@@ -67,13 +66,6 @@ def cuda_s_poly2(cp, r):
     fnum = Num(f)
     gnum = Num(g)
 
-    # Fix this later
-    # Here's the PROBLEM
-    # Coefficient Values may come in negative, and will first be modded
-    # Modulo INT_MAX_LENGTH. 14 is congruent to -1 mod INTMAX mod 65521
-    # use a larger int that supports negative numbers for coeffs?
-    # Coefficient arrays should be int32 to catch negative numbers and
-    # integer overflow
     um = list(cp[1][0])
     vm = list(cp[4][0]) # separate 
     uc = cp[1][1]
@@ -97,6 +89,9 @@ def cuda_s_poly2(cp, r):
     fc_dest = np.zeros_like(fc)
     gc_dest = np.zeros_like(gc)
 
+    # prepare threads
+    
+    
     # launch kernel
     spoly_mul_numba_kernel(fsm_dest, gsm_dest, fc_dest, gc_dest,
                            fsm, gsm, fc, gc, um, vm, uv_coeffs, nvars, modulus)
@@ -104,7 +99,11 @@ def cuda_s_poly2(cp, r):
     # Sub Step
     # Get all monomials in both umf, vmg, sort by ordering, reindex
     # f, g in a 2d coefficient array, send to other kernel
-    
+    if sum(sum(fsm_dest)) == 0:
+        if sum(sum(gsm_dest)) == 0:
+            return (((ring.zero_monom), 0),
+                    ring.from_expr('0'), 0)
+
     fnew = [tuple(f) for f in fsm_dest]
     gnew = [tuple(g) for g in gsm_dest]
     fnew_sig = fnew[0]
@@ -113,7 +112,7 @@ def cuda_s_poly2(cp, r):
     gnew_monoms = [g for g in gnew[1:]]
 
     all_monoms = set(fnew_monoms).union(set(gnew_monoms))
-    all_monoms = sorted(all_monoms, key=monomial_key(order=r.order), reverse=True)
+    all_monoms = sorted(all_monoms, key=monomial_key(order=ring.order), reverse=True)
 
     spair_matrix = np.zeros((2, len(all_monoms)), dtype=np.int32)
 
@@ -125,20 +124,24 @@ def cuda_s_poly2(cp, r):
     # Parse
     spair_info = parse_gpu_spoly_mul(spair_matrix, all_monoms, fnew_sig,
                                      gnew_sig, fsig_idx, gsig_idx, fnum,
-                                     gnum, r)
+                                     gnum, ring)
 
-    lb_spoly = spoly_numba_io(spair_info, r)
+    if not spair_info:
+        return (((ring.zero_monom), 0)
+                ring.from_expr('0'), 0)
+
+    lb_spoly = spoly_numba_io(spair_info, ring)
 
     return lb_spoly
 
-def spoly_numba_io(spair_info, r):
+def spoly_numba_io(spair_info, ring):
     """
     Prepare the mini macaulay matrix for the numba kernel
     Called after symbolic_preprocessing only.
 
     Coefficient values should be of size int32
     """
-    modulus = r.domain.mod
+    modulus = ring.domain.mod
 
     cols = spair_info["cols"]
     rows = spair_info["rows"]
@@ -153,7 +156,7 @@ def spoly_numba_io(spair_info, r):
     spoly_sub_numba_kernel(dest, spair_matrix, modulus)
 
     # parse
-    lb_spoly = parse_gpu_spoly(dest, spair_info, r)
+    lb_spoly = parse_gpu_spoly(dest, spair_info, ring)
 
     return lb_spoly
 
@@ -208,7 +211,7 @@ def spoly_mul_numba_kernel(fsm_dest, gsm_dest, fc_dest, gc_dest,
         gc_dest[i] = ((uv_coeffs[1] % modulus) * (gc[i] % modulus)) % modulus
 
 
-def symbolic_preprocessing(Ld, B, r):
+def symbolic_preprocessing(Ld, B, ring):
     """
     Mini Symbolic Preprocessing for Single S-Polynomial
     
@@ -218,8 +221,8 @@ def symbolic_preprocessing(Ld, B, r):
     
     Out: Information needed to construct a macaulay matrix.
     """
-    order = r.order
-    domain = r.domain
+    order = ring.order
+    domain = ring.domain
 
     Fi = set([lbp_mul_term(sc[2], sc[1]) for sc in Ld])
     Done = set([Polyn(f).LM for f in Fi])
@@ -240,9 +243,9 @@ def symbolic_preprocessing(Ld, B, r):
             break
 
     # Fi sorted by sig_key, normalized, labeled, Done by monomial order
-    Fi = sorted(Fi, key=lambda f: sig_key(f[0], r.order), reverse=True)
+    Fi = sorted(Fi, key=lambda f: sig_key(f[0], ring.order), reverse=True)
     Fi = [lbp(Sign(f), Polyn(f).monic(), Num(f)) for f in Fi]
-    Done = sorted(Done, key=monomial_key(order=r.order), reverse = True)
+    Done = sorted(Done, key=monomial_key(order=ring.order), reverse = True)
 
     # pseudo COO sparse format
     nonzero_entries = []
@@ -260,7 +263,7 @@ def symbolic_preprocessing(Ld, B, r):
     return spair_info
 
 
-def parse_gpu_spoly(dest, spair_info, r):
+def parse_gpu_spoly(dest, spair_info, ring):
     """
     Return GPU spoly to sympy labeled polynomial
 
@@ -273,6 +276,9 @@ def parse_gpu_spoly(dest, spair_info, r):
     spoly_sig = spair_info["spair"][0][0]
     spoly_num = spair_info["spair"][0][2]
 
+    if spair_info["monomials"] == [ring.zero_monom]:
+        return spair_info["spair"][0]
+
     pexp = []
     for i, c in enumerate(dest):
         if c != 0:
@@ -280,13 +286,15 @@ def parse_gpu_spoly(dest, spair_info, r):
             for j, e in enumerate(spair_info["monomials"][i]):
                 if e != 0:
                     pexp.append('*' + str(r.symbols[j]) + '**' + str(e))
-    spol = r.from_expr(''.join(pexp))
-    lb_spol = tuple([spoly_sig, spol, spoly_num])
-    return lb_spol
+    if pexp != []:
+        spol = ring.from_expr(''.join(pexp))
+        lb_spol = tuple([spoly_sig, spol, spoly_num])
+        return lb_spol
+    return (((ring.zero_monom), 0), ring.from_expr('0'), 0)
 
 
 def parse_gpu_spoly_mul(spair_matrix, all_monoms, fnew_sig, gnew_sig,
-                        fsig_idx, gsig_idx, fnum, gnum, r):
+                        fsig_idx, gsig_idx, fnum, gnum, ring):
     """
     parse into same output as symbolic_preprocessing to reuse
     numba_spoly_io function. Contains some redundant information,
@@ -294,6 +302,9 @@ def parse_gpu_spoly_mul(spair_matrix, all_monoms, fnew_sig, gnew_sig,
     """
     fsig = (tuple(fnew_sig), fsig_idx)
     gsig = (tuple(gnew_sig), gsig_idx)
+
+    if all_monoms == [ring.zero_monom] or sum(sum(spair_matrix)) == 0:
+        return None
 
     fpexp = []
     gpexp = []
@@ -303,9 +314,9 @@ def parse_gpu_spoly_mul(spair_matrix, all_monoms, fnew_sig, gnew_sig,
             fpexp.append('+' + str(c))
             for j, e in enumerate(all_monoms[i]):
                 if e != 0:
-                    fpexp.append('*' + str(r.symbols[j]) + '**' + str(e))
+                    fpexp.append('*' + str(ring.symbols[j]) + '**' + str(e))
 
-    fp = r.from_expr(''.join(fpexp))
+    fp = ring.from_expr(''.join(fpexp))
     lbf = (fsig, fp, fnum)
 
     for i, c in enumerate(spair_matrix[1]):
@@ -313,13 +324,13 @@ def parse_gpu_spoly_mul(spair_matrix, all_monoms, fnew_sig, gnew_sig,
             gpexp.append('+' + str(c))
             for j, e in enumerate(all_monoms[i]):
                 if e != 0:
-                    gpexp.append('*' + str(r.symbols[j]) + '**' + str(e))
+                    gpexp.append('*' + str(ring.symbols[j]) + '**' + str(e))
 
-    gp = r.from_expr(''.join(gpexp))
+    gp = ring.from_expr(''.join(gpexp))
     lbg = (gsig, gp, gnum)
 
     spair = [lbf, lbg]
-    spair = sorted(spair, key=lambda f: sig_key(f[0], r.order), reverse=True)
+    spair = sorted(spair, key=lambda f: sig_key(f[0], ring.order), reverse=True)
 
     nze = []
     for i, f in enumerate(spair):
@@ -339,7 +350,7 @@ def parse_gpu_spoly_mul(spair_matrix, all_monoms, fnew_sig, gnew_sig,
 if __name__ == "__main__":
     print("CUDA Spoly Test")
 
-    test_r, a, b, c, d, e = ring(symbols='a, b, c, d, e', domain=GF(65521), order='grevlex')
+    r, a, b, c, d, e = ring(symbols='a, b, c, d, e', domain=GF(65521), order='grevlex')
     """
     print("Cyclic Affine 4")
     f1 = a + b + c + d
@@ -355,16 +366,16 @@ if __name__ == "__main__":
     f4 = a*b*c*d - e**4
     F = [f1, f2, f3, f4]
 
-    order = test_r.order
+    order = r.order
 
-    B = [lbp(sig(test_r.zero_monom, i), f, i) for i, f in enumerate(F)]
+    B = [lbp(sig(r.zero_monom, i), f, i) for i, f in enumerate(F)]
     B = sorted(B, key=lambda g: order(Polyn(g).LM), reverse=True)
 
-    CP = [critical_pair(B[i], B[j], test_r)
+    CP = [critical_pair(B[i], B[j], r)
           for i in range(len(B)) for j in range(i + 1, len(B))]
-    CP = sorted(CP, key=lambda cp: cp_key(cp, test_r), reverse=True)
+    CP = sorted(CP, key=lambda cp: cp_key(cp, r), reverse=True)
 
-    S = [cuda_s_poly(CP[i], test_r) for i in range(len(CP))]
+    S = [cuda_s_poly(CP[i], r) for i in range(len(CP))]
     S_orig = [s_poly(CP[i]) for i in range(len(CP))]
 
     print("Output of original s_poly")
