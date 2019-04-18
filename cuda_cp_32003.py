@@ -3,18 +3,12 @@
 
 import sys
 from math import ceil
-import pickle
 
 from sympy import *
 from sympy.polys.groebnertools import *
 
 import numpy as np
 from numba import cuda
-
-# Multiplicative Inverses
-mi_32003 = open('./mul_inv_32003', 'rb')
-MI_32003 = pickle.load(mi_32003)
-mi_32003.close()
 
 
 def cp_cuda(p1, p2, ring):
