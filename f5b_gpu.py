@@ -2,7 +2,7 @@ from sympy.polys.groebnertools import *
 # from numba import cuda
 
 from cuda_cp_gf import cp_cuda
-from cuda_spoly_65521 import cuda_s_poly2
+from cuda_spoly_65521 import cuda_s_poly, cuda_s_poly2
 # from cuda_spoly_32003 import cuda_s_poly2
 
 
@@ -22,7 +22,7 @@ def _f5b_gpu(F, r, useGPUCP, useGPUSPoly):
     else:
         c_p = critical_pair
     if useGPUSPoly:
-        s_p = cuda_s_poly2
+        s_p = cuda_s_poly
         sp_needs_ring = True
     else:
         s_p = s_poly
@@ -78,7 +78,7 @@ def _f5b_gpu(F, r, useGPUCP, useGPUSPoly):
             continue
 
         if sp_needs_ring:
-            s = s_p(cp, r)
+            s = s_p(cp, B, r)
         else:
             s = s_p(cp)
 

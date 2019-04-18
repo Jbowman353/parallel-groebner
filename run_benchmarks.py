@@ -1,4 +1,4 @@
-from sympy.polys.groebnertools import groebner
+from sympy.polys.groebnertools import groebner, is_groebner
 from sympy.polys.orderings import lex, grlex, grevlex
 from sympy.polys.rings import ring, xring
 from sympy.polys.domains import ZZ, QQ, RR, GF
@@ -30,6 +30,10 @@ def get_degree(sys_string):
     return max(degs) if len(degs) != 0 else 1
 
 
+def get_new_ring(v_l):
+    return xring(v_l, GF(65521), grevlex)
+
+
 assert len(gb_input.inputs) != 0
 
 print('*****\nRUNNING BENCHMARKS\n******')
@@ -45,8 +49,7 @@ for input_data in gb_input.inputs:
     var_str_list = input_data['vars']
     sys_string = input_data['system']
 
-    r_v = xring(var_str_list, GF(65521), grevlex)
-    # r_v = xring(var_str_list, QQ, lex)
+    r_v = get_new_ring(var_str_list)
 
     var_list = []
     for i in range(len(var_str_list)):
@@ -83,8 +86,6 @@ for input_data in gb_input.inputs:
     end_cpsp_gpu = time.time()
     cpsp_gpu_runtime = end_cpsp_gpu - start_cpsp_gpu
 
-
-
     output_data.append({
         'Input Name': fname,
         'SymPy F5B Time (sec)': f5b_runtime,
@@ -96,10 +97,22 @@ for input_data in gb_input.inputs:
         'Max Degree': get_degree(sys_string)
     })
     print('Sympy F5B Time: ' + str(f5b_runtime))
-    print(fname + ' Completed!\n ----------')
+    print(res_f5b)
+    print(is_groebner(res_f5b, R))
+    print('GPU CP Time: ' + str(cp_gpu_runtime))
+    print(res_cp_gpu)
+    print(is_groebner(res_f5b, R))
+    print('GPU SP Time: ' + str(sp_gpu_runtime))
+    print(res_sp_gpu)
+    print(is_groebner(res_f5b, R))
+    print('GPU CP+SP Time: ' + str(cpsp_gpu_runtime))
+    print(res_cpsp_gpu)
+    print(is_groebner(res_f5b, R))
+
+    print(fname + ' Completed!\n ----------\n\n')
 
 
-with open(output_file_path, 'w') as csv_file:
+with open(output_file_path, 'w', newline='') as csv_file:
     out_writer = csv.DictWriter(csv_file, fieldnames=output_data[0].keys())
     out_writer.writeheader()
     out_writer.writerows(output_data)
