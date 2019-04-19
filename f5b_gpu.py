@@ -138,3 +138,58 @@ def _f5b_gpu(F, r, useGPUCP, useGPUSPoly):
 
 def run(I, R, useGPUCP, useGPUSPoly):
     return _f5b_gpu(I, R, useGPUCP, useGPUSPoly)
+
+#############
+# Local tests
+#############
+
+def local_is_groebner(G, ring):
+    """
+    Check if G is a Groebner basis.
+    """
+    for i in range(len(G)):
+        for j in range(i + 1, len(G)):
+            s = spoly(G[i], G[j], ring)
+            s = s.rem(G)
+            if s:
+                return False
+    return True
+
+
+def local_is_minimal(G, ring):
+    """
+    Checks if G is a minimal Groebner basis.
+    """
+    order = ring.order
+    domain = ring.domain
+
+    G.sort(key=lambda g: order(g.LM))
+
+    for i, g in enumerate(G):
+        if g.LC != domain.one:
+            return False
+
+        for h in G[:i] + G[i + 1:]:
+            if monomial_divides(h.LM, g.LM):
+                return False
+    return True
+
+
+def local_is_reduced(G, ring):
+    """
+    Checks if G is a reduced Groebner basis.
+    """
+    order = ring.order
+    domain = ring.domain
+
+    G.sort(key=lambda g: order(g.LM))
+
+    for i, g in enumerate(G):
+        if g.LC != domain.one:
+            return False
+
+        for term in g.terms():
+            for h in G[:i] + G[i + 1:]:
+                if monomial_divides(h.LM, term[0]):
+                    return False
+return True
