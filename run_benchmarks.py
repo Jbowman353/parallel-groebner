@@ -86,6 +86,8 @@ for input_data in gb_input.inputs:
     end_cpsp_gpu = time.time()
     cpsp_gpu_runtime = end_cpsp_gpu - start_cpsp_gpu
 
+    res_match = res_cpsp_gpu == res_f5b
+    
     output_data.append({
         'Input Name': fname,
         'SymPy F5B Time (sec)': f5b_runtime,
@@ -94,32 +96,35 @@ for input_data in gb_input.inputs:
         'CP+SP GPU Time (sec)': cpsp_gpu_runtime,
         'Number of Variables': len(var_list),
         'Number of Polynomials': len(I),
-        'Max Degree': get_degree(sys_string)
+        'Max Degree': get_degree(sys_string),
+		'Matching Results': res_match
     })
     print('------------------------')
     print('Sympy F5B Time: ' + str(f5b_runtime))
     print(res_f5b)
-    print('GB?', is_groebner(res_f5b, R))
+    #print('GB?', is_groebner(res_f5b, R))
     print('Minimal?', is_minimal(res_f5b, R))
     #print('Reduced?', is_reduced(res_f5b, R))
     print('--')
     print('GPU CP Time: ' + str(cp_gpu_runtime))
     print(res_cp_gpu)
-    print('GB?', is_groebner(res_cp_gpu, R))
+    #print('GB?', is_groebner(res_cp_gpu, R))
     print('Minimal?', is_minimal(res_cp_gpu, R))
     #print('Reduced?', is_reduced(res_cp_gpu, R))
     print('--')
     print('GPU SP Time: ' + str(sp_gpu_runtime))
     print(res_sp_gpu)
-    print('GB?', is_groebner(res_sp_gpu, R))
+    #print('GB?', is_groebner(res_sp_gpu, R))
     print('Minimal?', is_minimal(res_sp_gpu, R))
     #print('Reduced?', is_reduced(res_sp_gpu, R))
     print('--')
     print('GPU CP+SP Time: ' + str(cpsp_gpu_runtime))
     print(res_cpsp_gpu)
-    print('GB?', is_groebner(res_cpsp_gpu, R))
+    #print('GB?', is_groebner(res_cpsp_gpu, R))
     print('Minimal?', is_minimal(res_cpsp_gpu, R))
     #print('Reduced?', is_reduced(res_cpsp_gpu, R))
+    print('--')
+    print('f5b and f5b_gpu Matching?', res_match)
 
     print(fname + ' Completed!\n--------------------\n\n')
 
