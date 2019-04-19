@@ -192,4 +192,4 @@ def local_is_reduced(G, ring):
             for h in G[:i] + G[i + 1:]:
                 if monomial_divides(h.LM, term[0]):
                     return False
-return True
+    return True
